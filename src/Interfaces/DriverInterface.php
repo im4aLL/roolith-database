@@ -2,14 +2,17 @@
 namespace Roolith\Interfaces;
 
 
+use Roolith\Exceptions\Exception;
+
 interface DriverInterface
 {
     /**
      * Establish database connection
      *
      * @param $config
-     * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '']
+     * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '', 'type' => 'mysql']
      * @return bool
+     * @throws Exception
      */
     public function connect($config);
 
@@ -25,7 +28,9 @@ interface DriverInterface
      *
      * @param $string
      * @param $method
-     * @return $this
+     * @return array
+     * ['total' => 0, 'data' => [], 'debug' => ['string' => '', 'value' => [], 'method' => '']]
+     * @throws Exception
      */
     public function query($string, $method = null);
 

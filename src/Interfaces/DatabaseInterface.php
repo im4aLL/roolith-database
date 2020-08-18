@@ -1,14 +1,17 @@
 <?php
 namespace Roolith\Interfaces;
 
+use Roolith\Exceptions\Exception;
+
 interface DatabaseInterface
 {
     /**
      * Establish database connection
      *
      * @param $config
-     * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '']
+     * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '', 'type' => 'mysql']
      * @return bool
+     * @throws Exception
      */
     public function connect($config);
 
@@ -22,7 +25,7 @@ interface DatabaseInterface
     /**
      * Return records
      *
-     * @return array
+     * @return iterable
      * should return array of records or empty array
      */
     public function get();
@@ -40,6 +43,13 @@ interface DatabaseInterface
      * @return int
      */
     public function count();
+
+    /**
+     * Debug information
+     *
+     * @return array
+     */
+    public function debug();
 
     /**
      * Add where condition to existing query
@@ -79,7 +89,7 @@ interface DatabaseInterface
      * Pagination
      *
      * @param $number
-     * @return Paginator
+     * @return PaginatorInterface
      *
      {
         "total": 50,

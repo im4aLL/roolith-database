@@ -3,11 +3,14 @@ namespace Roolith;
 
 use Roolith\Interfaces\DatabaseInterface;
 use Roolith\Interfaces\DriverInterface;
-use Roolith\Interfaces\Paginator;
+use Roolith\Interfaces\PaginatorInterface;
 
 class Database implements DatabaseInterface
 {
     protected $driver;
+    protected $result;
+    protected $total = 0;
+    protected $queryDebug;
 
     public function __construct(DriverInterface $driver)
     {
@@ -35,7 +38,7 @@ class Database implements DatabaseInterface
      */
     public function get()
     {
-        // TODO: Implement get() method.
+        return $this->result;
     }
 
     /**
@@ -51,7 +54,15 @@ class Database implements DatabaseInterface
      */
     public function count()
     {
-        // TODO: Implement count() method.
+        return $this->total;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function debug()
+    {
+        return $this->queryDebug;
     }
 
     /**
@@ -99,7 +110,16 @@ class Database implements DatabaseInterface
      */
     public function query($string, $method = null)
     {
-        // TODO: Implement query() method.
+        try {
+            $resultArray = $method ? $this->driver->query($string, $method): $this->driver->query($string);
+            $this->result = $resultArray['data'];
+            $this->total = $resultArray['total'];
+            $this->queryDebug = $resultArray['debug'];
+        } catch (Exceptions\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return $this;
     }
 
     /**

@@ -2,7 +2,7 @@
 namespace Roolith\Interfaces;
 
 
-interface Paginator
+interface PaginatorInterface
 {
     /**
      * Get current page item count
