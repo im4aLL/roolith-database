@@ -183,7 +183,17 @@ class Database implements DatabaseInterface
      */
     public function paginate($number)
     {
-        // TODO: Implement paginate() method.
+        if (is_callable($this->queryFn)) {
+            call_user_func($this->queryFn, $this->whereCondition);
+            $this->queryFn = null;
+        } else {
+            $this->select([])->get();
+        }
+
+        $this->whereCondition = '';
+        $this->driver->resetConditionalQueryString();
+
+        return $this->result;
     }
 
     /**

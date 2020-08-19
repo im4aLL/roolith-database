@@ -67,4 +67,7 @@ $db = new Database([
 //$result = $db->debugMode()->table('users')->pluck(['name', 'email']);
 //dd($result);
 
+$result = $db->debugMode()->query("SELECT * FROM users")->paginate(1);
+dd($result);
+
 $db->disconnect();
