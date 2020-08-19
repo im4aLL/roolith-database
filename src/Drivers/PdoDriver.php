@@ -137,6 +137,16 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
+    public function resetConditionalQueryString()
+    {
+        $this->whereCondition = '';
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function limitNumberOfRowsString($total, $offset)
     {
         // TODO: Implement limitNumberOfRowsString() method.

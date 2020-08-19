@@ -95,6 +95,7 @@ class Database implements DatabaseInterface
         }
 
         $this->whereCondition = '';
+        $this->driver->resetConditionalQueryString();
 
         return $this->result;
     }

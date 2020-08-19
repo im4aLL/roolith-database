@@ -45,6 +45,13 @@ interface DriverInterface
     public function buildConditionQueryString($array);
 
     /**
+     * Reset conditional query string
+     *
+     * @return bool
+     */
+    public function resetConditionalQueryString();
+
+    /**
      * Get limit query string
      *
      * @param $total
