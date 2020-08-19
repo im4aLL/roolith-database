@@ -58,4 +58,13 @@ $db = new Database([
 //$result = $db->table('users')->delete(['id' => 3]);
 //dd($result);
 
+//$result = $db->debugMode()->table('users')->where('name', '%Hadi%', 'LIKE')->get();
+//dd($result);
+
+//$result = $db->debugMode()->table('users')->find(1);
+//dd($result);
+
+//$result = $db->debugMode()->table('users')->pluck(['name', 'email']);
+//dd($result);
+
 $db->disconnect();

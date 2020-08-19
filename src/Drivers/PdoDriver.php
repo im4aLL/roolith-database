@@ -10,6 +10,14 @@ use Roolith\Interfaces\DriverInterface;
 class PdoDriver implements DriverInterface
 {
     protected $pdo;
+    protected $debugMode;
+    protected $whereCondition;
+
+    public function __construct()
+    {
+        $this->whereCondition = '';
+        $this->debugMode = false;
+    }
 
     /**
      * @inheritDoc
@@ -62,17 +70,35 @@ class PdoDriver implements DriverInterface
     }
 
     /**
+     * Reset
+     *
+     * @return $this
+     */
+    public function reset()
+    {
+        $this->whereCondition = '';
+
+        return $this;
+    }
+
+    /**
      * @inheritDoc
      */
     public function query($string, $method = DbConstant::DEFAULT_PDO_FETCH_METHOD)
     {
+        $this->reset();
+
         $result = [
             'total' => null,
             'data' => null,
-            'debug' => null,
         ];
 
         try {
+            if ($this->debugMode) {
+                echo $string;
+                echo PHP_EOL;
+            }
+
             $qry = $this->pdo->prepare($string);
             $qry->execute();
             $qry->setFetchMode($method);
@@ -82,7 +108,6 @@ class PdoDriver implements DriverInterface
             }
 
             $result['total'] = $qry->rowCount();
-            $result['debug'] = ['string' => $string, 'value' => NULL, 'method' => $method];
         } catch (PDOException $PDOException) {
             throw new Exception($PDOException->getMessage() .' '. $PDOException->getTraceAsString());
         }
@@ -100,7 +125,13 @@ class PdoDriver implements DriverInterface
      */
     public function buildConditionQueryString($array)
     {
-        // TODO: Implement buildConditionQueryString() method.
+        if (strlen($this->whereCondition) > 0) {
+            $this->whereCondition .= ' '.$array['operator'].' ';
+        }
+
+        $this->whereCondition .= "`".$array['name']."` ".$array['expression']." '".$array['value']."'";
+
+        return $this->whereCondition;
     }
 
     /**
@@ -119,13 +150,17 @@ class PdoDriver implements DriverInterface
         $result = [
             'total' => null,
             'data' => null,
-            'debug' => null,
         ];
 
         $fieldString = $this->buildFieldSelectString($array);
         $qryStr = $this->buildQueryString($table, $fieldString, $array);
 
         try {
+            if ($this->debugMode) {
+                echo $qryStr;
+                echo PHP_EOL;
+            }
+
             $qry = $this->pdo->prepare($qryStr);
             $qry->execute();
 
@@ -137,7 +172,6 @@ class PdoDriver implements DriverInterface
 
             $result['data'] = $qry->fetchAll();
             $result['total'] = $qry->rowCount();
-            $result['debug'] = ['string' => $qryStr, 'value' => $array, 'method' => (isset($qryArray['method']) ? $array['method'] : DbConstant::DEFAULT_PDO_FETCH_METHOD)];
         }
         catch (PDOException $PDOException){
             throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
@@ -181,7 +215,6 @@ class PdoDriver implements DriverInterface
                 'insertedId' => 0,
                 'isDuplicate' => false,
             ],
-            'debug' => null,
         ];
 
         $fields = [];
@@ -201,12 +234,18 @@ class PdoDriver implements DriverInterface
             $qryStr = 'INSERT INTO '.$table.' ('.$rawFieldsStr.') VALUES('.$fieldString.')';
 
             try {
+                if ($this->debugMode) {
+                    echo $qryStr;
+                    echo PHP_EOL;
+                    print_r($executeArray);
+                    echo PHP_EOL;
+                }
+
                 $qry = $this->pdo->prepare($qryStr);
                 $qry->execute($executeArray);
 
                 $result['data']['affectedRow'] = $qry->rowCount();
                 $result['data']['insertedId'] = $this->pdo->lastInsertId();
-                $result['debug'] = ['string' => $qryStr, 'value' => $executeArray, 'method' => null];
             }
             catch (PDOException $PDOException){
                 throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
@@ -258,7 +297,6 @@ class PdoDriver implements DriverInterface
                 'affectedRow' => 0,
                 'isDuplicate' => false,
             ],
-            'debug' => null,
         ];
 
         $fields = [];
@@ -273,26 +311,22 @@ class PdoDriver implements DriverInterface
         $result['data']['isDuplicate'] = $this->isAlreadyExists($table, $array, $uniqueArray, $whereArray);
 
         if($result['data']['isDuplicate'] === false && ($whereArray !== null || (is_array($whereArray) && count($whereArray) > 0))) {
-            if(is_array($whereArray)) {
-                $affectedTo = [];
-
-                foreach($whereArray as $key=>$val){
-                    $affectedTo[] = $key." = '".$val."'";
-                }
-
-                $whereCond = ' WHERE '.implode(" AND ", $affectedTo);
-            } else {
-                $whereCond = ' WHERE '.$whereArray;
-            }
+            $whereCond = $this->prepareWhereArray($whereArray);
 
             $qryStr = 'UPDATE '.$table.' SET '. $fieldsString . $whereCond;
 
             try {
+                if ($this->debugMode) {
+                    echo $qryStr;
+                    echo PHP_EOL;
+                    print_r($executeArray);
+                    echo PHP_EOL;
+                }
+
                 $qry = $this->pdo->prepare($qryStr);
                 $qry->execute($executeArray);
 
                 $result['data']['affectedRow'] = $qry->rowCount();
-                $result['debug'] = ['string' => $qryStr, 'value' => $executeArray, 'method' => null];
             }
             catch (PDOException $PDOException){
                 throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
@@ -300,6 +334,23 @@ class PdoDriver implements DriverInterface
         }
 
         return $result;
+    }
+
+    protected function prepareWhereArray($whereArray)
+    {
+        if(is_array($whereArray)) {
+            $affectedTo = [];
+
+            foreach($whereArray as $key=>$val){
+                $affectedTo[] = $key." = '".$val."'";
+            }
+
+            $whereCond = ' WHERE '.implode(" AND ", $affectedTo);
+        } else {
+            $whereCond = ' WHERE '.$whereArray;
+        }
+
+        return $whereCond;
     }
 
     /**
@@ -311,24 +362,19 @@ class PdoDriver implements DriverInterface
             'data' => [
                 'affectedRow' => 0,
             ],
-            'debug' => null,
         ];
 
         if($whereArray !== null || (is_array($whereArray) && count($whereArray)) > 0 ){
-            if(is_array($whereArray)) {
-                $affectedTo = array();
-                foreach($whereArray as $key=>$val) {
-                    $affectedTo[] = $key." = '".$val."'";
-                }
-                $whereCond = 'WHERE '.implode(" AND ", $affectedTo);
-            }
-            else {
-                $whereCond = 'WHERE '.$whereArray;
-            }
+            $whereCond = $this->prepareWhereArray($whereArray);
 
             $qryStr = 'DELETE FROM '.$table.' '.$whereCond;
 
             try {
+                if ($this->debugMode) {
+                    echo $qryStr;
+                    echo PHP_EOL;
+                }
+
                 $qry = $this->pdo->prepare($qryStr);
                 $qry->execute();
 
@@ -342,5 +388,13 @@ class PdoDriver implements DriverInterface
         }
 
         return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setDebugMode($mode)
+    {
+        $this->debugMode = $mode;
     }
 }

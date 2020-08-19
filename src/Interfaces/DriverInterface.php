@@ -104,4 +104,12 @@ interface DriverInterface
      * @throws Exception
      */
     public function delete($table, $whereArray);
+
+    /**
+     * Set debug mode
+     *
+     * @param $mode bool
+     * @return $this
+     */
+    public function setDebugMode($mode);
 }

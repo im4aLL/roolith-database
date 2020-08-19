@@ -52,29 +52,24 @@ interface DatabaseInterface
     public function count();
 
     /**
-     * Debug information
-     *
-     * @return array
-     */
-    public function debug();
-
-    /**
      * Add where condition to existing query
      *
      * @param $name
      * @param $value
+     * @param $expression string
      * @return $this
      */
-    public function where($name, $value);
+    public function where($name, $value, $expression);
 
     /**
      * Add or where condition to existing query
      *
      * @param $name
      * @param $value
+     * @param $expression string
      * @return $this
      */
-    public function orWhere($name, $value);
+    public function orWhere($name, $value, $expression);
 
     /**
      * Get data by id
@@ -177,4 +172,11 @@ interface DatabaseInterface
      * @return DeleteResponseInterface
      */
     public function delete($whereArray);
+
+    /**
+     * Turn on debug mode
+     *
+     * @return $this
+     */
+    public function debugMode();
 }
