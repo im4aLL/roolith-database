@@ -65,21 +65,23 @@ interface DriverInterface
      * 'orderBy' => 'name',
      * 'groupBy' => 'name',
      * ]
-     * @return array
+     * @return iterable
+     * @throws Exception
      */
     public function select($table, $array);
 
     /**
      * Insert query
      *
+     * @param $table string
      * @param $array array
      * example ['name' => 'John doe', 'email' => 'john@email.com']
-     * @param $uniqueArray
+     * @param array $uniqueArray
      * example ['email']
-     * @return bool|array
-     * ['affectedRow' => 1, insertedId => 1, isDuplicate => 1]
+     * @return bool|array ['affectedRow' => 1, 'insertedId' => 1, 'isDuplicate' => 1]
+     * @throws Exception
      */
-    public function insert($array, $uniqueArray = []);
+    public function insert($table, $array, $uniqueArray = []);
 
     /**
      * Update query
@@ -87,9 +89,9 @@ interface DriverInterface
      * @param $table string
      * @param $array array
      * @param $whereArray array
-     * @param array $uniqueArray array
-     * @return bool|array
-     * ['affectedRow' => 1, isDuplicate => 1]
+     * @param array $uniqueArray
+     * @return bool|array ['affectedRow' => 1, isDuplicate => 1]
+     * @throws Exception
      */
     public function update($table, $array, $whereArray, $uniqueArray = []);
 
@@ -98,8 +100,8 @@ interface DriverInterface
      *
      * @param $table string
      * @param $whereArray array
-     * @return bool|array
-     * ['affectedRow' => 1]
+     * @return bool|array ['affectedRow' => 1]
+     * @throws Exception
      */
     public function delete($table, $whereArray);
 }

@@ -1,6 +1,7 @@
 <?php
 namespace Roolith;
 
+use Roolith\Drivers\PdoDriver;
 use Roolith\Interfaces\DatabaseInterface;
 use Roolith\Interfaces\DriverInterface;
 use Roolith\Interfaces\PaginatorInterface;
@@ -11,10 +12,17 @@ class Database implements DatabaseInterface
     protected $result;
     protected $total = 0;
     protected $queryDebug;
+    protected $tableName;
 
-    public function __construct(DriverInterface $driver)
+    public function __construct($config = [], DriverInterface $driver = null)
     {
-        $this->driver = $driver;
+        if ($driver) {
+            $this->driver = $driver;
+        }
+
+        if (count($config) > 0) {
+            $this->connect($config);
+        }
     }
 
     /**
@@ -22,6 +30,22 @@ class Database implements DatabaseInterface
      */
     public function connect($config)
     {
+        if (!$this->driver) {
+            if (isset($config['type'])) {
+                switch ($config['type']) {
+                    case 'MySQL':
+                    case 'PostgreSQL':
+                    case 'SQLite':
+                    case 'SQL':
+                    default:
+                        $this->driver = new PdoDriver($config);
+                        break;
+                }
+            } else {
+                $this->driver = new PdoDriver($config);
+            }
+        }
+
         return $this->driver->connect($config);
     }
 
@@ -30,7 +54,23 @@ class Database implements DatabaseInterface
      */
     public function disconnect()
     {
+        if (!$this->driver) {
+            return false;
+        }
+
         return $this->driver->disconnect();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function reset()
+    {
+        $this->result = null;
+        $this->total = 0;
+        $this->queryDebug = null;
+
+        return $this;
     }
 
     /**
@@ -46,7 +86,11 @@ class Database implements DatabaseInterface
      */
     public function first()
     {
-        // TODO: Implement first() method.
+        if ($this->count() > 0) {
+            return $this->get()[0];
+        }
+
+        return false;
     }
 
     /**
@@ -108,8 +152,20 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
+    public function table($name)
+    {
+        $this->tableName = $name;
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function query($string, $method = null)
     {
+        $this->reset();
+
         try {
             $resultArray = $method ? $this->driver->query($string, $method): $this->driver->query($string);
             $this->result = $resultArray['data'];
@@ -125,17 +181,20 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function table($name)
-    {
-        // TODO: Implement table() method.
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function select($array)
     {
-        // TODO: Implement select() method.
+        $this->reset();
+
+        try {
+            $resultArray = $this->driver->select($this->tableName, $array);
+            $this->result = $resultArray['data'];
+            $this->total = $resultArray['total'];
+            $this->queryDebug = $resultArray['debug'];
+        } catch (Exceptions\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return $this;
     }
 
     /**
@@ -143,7 +202,18 @@ class Database implements DatabaseInterface
      */
     public function insert($array, $uniqueArray = [])
     {
-        // TODO: Implement insert() method.
+        $this->reset();
+
+        try {
+            $resultArray = $this->driver->insert($this->tableName, $array, $uniqueArray);
+            $this->queryDebug = $resultArray['debug'];
+
+            return (object) $resultArray['data'];
+        } catch (Exceptions\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return false;
     }
 
     /**
@@ -151,6 +221,8 @@ class Database implements DatabaseInterface
      */
     public function update($array, $whereArray, $uniqueArray = [])
     {
+        $this->reset();
+
         // TODO: Implement update() method.
     }
 
@@ -159,6 +231,8 @@ class Database implements DatabaseInterface
      */
     public function delete($whereArray)
     {
+        $this->reset();
+
         // TODO: Implement delete() method.
     }
 }

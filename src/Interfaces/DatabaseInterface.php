@@ -9,7 +9,7 @@ interface DatabaseInterface
      * Establish database connection
      *
      * @param $config
-     * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '', 'type' => 'mysql']
+     * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '', 'type' => 'MySQL']
      * @return bool
      * @throws Exception
      */
@@ -21,6 +21,13 @@ interface DatabaseInterface
      * @return bool
      */
     public function disconnect();
+
+    /**
+     * Reset all states
+     *
+     * @return $this
+     */
+    public function reset();
 
     /**
      * Return records
@@ -149,8 +156,7 @@ interface DatabaseInterface
      * example ['name' => 'John doe', 'email' => 'john@email.com']
      * @param $uniqueArray
      * example ['email']
-     * @return bool|array
-     * ['affectedRow' => 1, insertedId => 1, isDuplicate => 1]
+     * @return bool | object ['affectedRow' => 1, 'insertedId' => 1, 'isDuplicate' => 1]
      */
     public function insert($array, $uniqueArray = []);
 
@@ -160,7 +166,7 @@ interface DatabaseInterface
      * @param $array
      * @param $whereArray
      * @param array $uniqueArray
-     * @return bool|array
+     * @return bool|object
      * ['affectedRow' => 1, isDuplicate => 1]
      */
     public function update($array, $whereArray, $uniqueArray = []);
@@ -169,7 +175,7 @@ interface DatabaseInterface
      * Delete query
      *
      * @param $whereArray
-     * @return bool|array
+     * @return bool|object
      * ['affectedRow' => 1]
      */
     public function delete($whereArray);

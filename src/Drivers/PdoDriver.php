@@ -2,6 +2,7 @@
 namespace Roolith\Drivers;
 
 use PDO;
+use PDOException;
 use Roolith\Constants\DbConstant;
 use Roolith\Exceptions\Exception;
 use Roolith\Interfaces\DriverInterface;
@@ -21,8 +22,8 @@ class PdoDriver implements DriverInterface
 
         try {
             $this->pdo = $this->getPdo($config);
-        } catch (\PDOException $PDOException) {
-            throw new Exception($PDOException->getMessage());
+        } catch (PDOException $PDOException) {
+            throw new Exception($PDOException->getMessage() .' '. $PDOException->getTraceAsString());
         }
 
         return $this->pdo instanceof PDO;
@@ -30,18 +31,22 @@ class PdoDriver implements DriverInterface
 
     protected function getPdo($config)
     {
-        $type = isset($config['type']) ? $config['type'] : DbConstant::DEFAULT_TYPE;
+        $type = isset($config['type']) ? strtolower($config['type']) : strtolower(DbConstant::DEFAULT_TYPE);
         $host = $config['host'];
-        $port = isset($config['port']) ? $config['port'] : DbConstant::DEFAULT_PORT[$type];
+        $port = isset($config['port']) ? $config['port'] : DbConstant::DEFAULT_PORT[DbConstant::DEFAULT_TYPE];
         $dbname = $config['name'];
         $user = $config['user'];
         $pass = $config['pass'];
 
-        $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
-        $opt = array(
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"
-        );
+        $dsn = $type.":host=$host;port=$port;dbname=$dbname";
+        $opt = [];
+
+        if ($type === 'mysql') {
+            $opt = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
+            ];
+        }
 
         return new PDO($dsn, $user, $pass, $opt);
     }
@@ -59,7 +64,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function query($string, $method = PDO::FETCH_OBJ)
+    public function query($string, $method = DbConstant::DEFAULT_PDO_FETCH_METHOD)
     {
         $result = [
             'total' => null,
@@ -78,11 +83,11 @@ class PdoDriver implements DriverInterface
 
             $result['total'] = $qry->rowCount();
             $result['debug'] = ['string' => $string, 'value' => NULL, 'method' => $method];
-
-            return $result;
-        } catch (\PDOException $PDOException) {
-            throw new Exception($PDOException->getMessage());
+        } catch (PDOException $PDOException) {
+            throw new Exception($PDOException->getMessage() .' '. $PDOException->getTraceAsString());
         }
+
+        return $result;
     }
 
     protected function startsWith($haystack, $needle)
@@ -111,15 +116,136 @@ class PdoDriver implements DriverInterface
      */
     public function select($table, $array)
     {
-        // TODO: Implement select() method.
+        $result = [
+            'total' => null,
+            'data' => null,
+            'debug' => null,
+        ];
+
+        $fieldString = $this->buildFieldSelectString($array);
+        $qryStr = $this->buildQueryString($table, $fieldString, $array);
+
+        try {
+            $qry = $this->pdo->prepare($qryStr);
+            $qry->execute();
+
+            if (isset($array['method'])) {
+                $qry->setFetchMode($array['method']);
+            } else {
+                $qry->setFetchMode(DbConstant::DEFAULT_PDO_FETCH_METHOD);
+            }
+
+            $result['data'] = $qry->fetchAll();
+            $result['total'] = $qry->rowCount();
+            $result['debug'] = ['string' => $qryStr, 'value' => $array, 'method' => (isset($qryArray['method']) ? $array['method'] : DbConstant::DEFAULT_PDO_FETCH_METHOD)];
+        }
+        catch (PDOException $PDOException){
+            throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
+        }
+
+        return $result;
+    }
+
+    protected function buildFieldSelectString($array)
+    {
+        return (isset($array['field']) && count($array['field']) > 0) ? implode(', ', $array['field']): '*';
+    }
+
+    protected function buildQueryString($table, $fieldString, $array)
+    {
+        $qryStr = 'SELECT '.$fieldString.' FROM `'.$table.'` '.((isset($array['condition']) && $array['condition'] !== null) ? $array['condition'] : '');
+
+        if(isset($array['groupbBy'])) {
+            $qryStr .= ' GROUP BY '.$array['groupbBy'];
+        }
+
+        if(isset($array['orderBy'])) {
+            $qryStr .= ' ORDER BY '.$array['orderBy'];
+        }
+
+        if(isset($array['limit'])) {
+            $qryStr .= ' LIMIT '.$array['limit'];
+        }
+
+        return $qryStr;
     }
 
     /**
      * @inheritDoc
      */
-    public function insert($array, $uniqueArray = [])
+    public function insert($table, $array, $uniqueArray = [])
     {
-        // TODO: Implement insert() method.
+        $result = [
+            'data' => [
+                'affectedRow' => 0,
+                'insertedId' => 0,
+                'isDuplicate' => false,
+            ],
+            'debug' => null,
+        ];
+
+        $fields = [];
+        $executeArray = [];
+
+        foreach ($array as $key => $val) {
+            $fields[] = ':'.$key;
+            $executeArray[':'.$key] = $val;
+        }
+
+        $fieldString = implode(',', $fields);
+        $rawFieldsStr = implode(',', str_replace(':', '', $fields));
+
+        $result['data']['isDuplicate'] = $this->isAlreadyExists($table, $array, $uniqueArray);
+
+        if($result['data']['isDuplicate'] === false) {
+            $qryStr = 'INSERT INTO '.$table.' ('.$rawFieldsStr.') VALUES('.$fieldString.')';
+
+            try {
+                $qry = $this->pdo->prepare($qryStr);
+                $qry->execute($executeArray);
+
+                $result['data']['affectedRow'] = $qry->rowCount();
+                $result['data']['insertedId'] = $this->pdo->lastInsertId();
+                $result['debug'] = ['string' => $qryStr, 'value' => $executeArray, 'method' => null];
+            }
+            catch (PDOException $PDOException){
+                throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
+            }
+        }
+
+        return $result;
+    }
+
+    protected function isAlreadyExists($table, $array = [], $uniqueArray = [], $whereArray = [])
+    {
+        $result = false;
+
+        if( count($uniqueArray) > 0 ) {
+            $condition = [];
+            foreach ($uniqueArray as $fieldName) {
+                $condition[] = $fieldName." = '".$array[$fieldName]."' ";
+            }
+
+            $extendedCondition = [];
+            if (count($whereArray) > 0) {
+                foreach($whereArray as $whereKey => $whereVal) {
+                    $extendedCondition[] = $whereKey." != '".$whereVal."' ";
+                }
+            }
+
+            $cQryStr = "SELECT ".$uniqueArray[0]." FROM ".$table." WHERE ".implode('AND ',$condition);
+            if( count($extendedCondition) > 0 ) {
+                $cQryStr .= "AND ".implode('AND ', $extendedCondition);
+            }
+
+            $cQry = $this->pdo->query($cQryStr);
+
+            if( $cQry->rowCount() > 0 ) {
+                $result = true;
+            }
+        }
+
+        return $result;
     }
 
     /**

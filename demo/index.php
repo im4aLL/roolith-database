@@ -1,4 +1,6 @@
 <?php
+use Roolith\Database;
+
 require __DIR__ .'/../vendor/autoload.php';
 
 function dd($d) {
@@ -7,18 +9,42 @@ function dd($d) {
     echo '</pre>';
 }
 
-$driver = new \Roolith\Drivers\PdoDriver();
-$database = new \Roolith\Database($driver);
+$db = new Database([
+    'host' => 'localhost',
+    'name' => 'localflix',
+    'user' => 'root',
+    'pass' => '',
+]);
 
-try {
-    $database->connect([
-        'host' => 'localhost',
-        'name' => 'support',
-        'user' => 'root',
-        'pass' => '',
-    ]);
-} catch (\Roolith\Exceptions\Exception $e) {
-    echo $e->getMessage();
-}
+//try {
+//    $db->connect([
+//        'host' => 'localhost',
+//        'name' => 'localflix',
+//        'user' => 'root',
+//        'pass' => '',
+//    ]);
+//} catch (\Roolith\Exceptions\Exception $e) {
+//    echo $e->getMessage();
+//}
 
-$database->query("SELECT * FROM users")->get();
+//$result = $db->query("SELECT * FROM users")->get();
+//dd($result);
+
+//$result = $db->table('users')->select([
+//    'field' => ['name', 'email'],
+//    'condition' => 'WHERE id > 0',
+//    'limit' => '0, 10',
+//    'orderBy' => 'name',
+//    'groupBy' => 'name',
+//])->first();
+//
+//dd($result);
+//dd($db->debug());
+
+$result = $db->table('users')->insert(
+    ['name' => 'John doe', 'email' => 'john4@email.com'],
+    ['name']
+);
+dd($result);
+
+$db->disconnect();
