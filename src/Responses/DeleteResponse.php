@@ -11,7 +11,7 @@ class DeleteResponse implements DeleteResponseInterface
 
     public function __construct($result = [])
     {
-        $this->affectedRow = $result['affectedRow'];
+        $this->affectedRow = isset($result['affectedRow']) ? $result['affectedRow'] : 0;
     }
     /**
      * @inheritDoc

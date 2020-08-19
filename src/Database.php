@@ -220,7 +220,7 @@ class Database implements DatabaseInterface
             echo $e->getMessage();
         }
 
-        return false;
+        return new InsertResponse();
     }
 
     /**
@@ -239,7 +239,7 @@ class Database implements DatabaseInterface
             echo $e->getMessage();
         }
 
-        return false;
+        return new UpdateResponse();
     }
 
     /**
@@ -258,6 +258,6 @@ class Database implements DatabaseInterface
             echo $e->getMessage();
         }
 
-        return false;
+        return new DeleteResponse();
     }
 }

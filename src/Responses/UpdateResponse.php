@@ -11,8 +11,8 @@ class UpdateResponse implements UpdateResponseInterface
 
     public function __construct($result = [])
     {
-        $this->affectedRow = $result['affectedRow'];
-        $this->isDuplicate = $result['isDuplicate'];
+        $this->affectedRow = isset($result['affectedRow']) ? $result['affectedRow'] : 0;
+        $this->isDuplicate = isset($result['isDuplicate']) ? $result['isDuplicate'] : 0;
     }
 
     /**
