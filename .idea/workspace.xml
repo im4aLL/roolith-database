@@ -22,11 +22,9 @@
     <list default="true" id="d58d0eca-4c31-4c37-88ff-b39040a11927" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demo/index.php" beforeDir="false" afterPath="$PROJECT_DIR$/demo/index.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Constants/DbConstant.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Constants/DbConstant.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Database.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Database.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Drivers/PdoDriver.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Drivers/PdoDriver.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Interfaces/DatabaseInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/DatabaseInterface.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Interfaces/DriverInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/DriverInterface.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,9 +33,7 @@
   </component>
   <component name="ComposerSettings" doNotAsk="true" synchronizationState="SYNCHRONIZE">
     <pharConfigPath>$PROJECT_DIR$/composer.json</pharConfigPath>
-    <execution>
-      <executable />
-    </execution>
+    <execution />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -102,7 +98,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="php.override.implement.member.chooser.php.doc" value="INHERIT" />
   </component>
-  <component name="SpellCheckerSettings" BundledDictionaries="0" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" Dictionaries="0" CorrectionsLimit="5" DefaultDictionary="application-level" UseSingleDictionary="true" />
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -116,42 +112,50 @@
       <workItem from="1597491181180" duration="7957000" />
       <workItem from="1597765609844" duration="5137000" />
       <workItem from="1597830979777" duration="6547000" />
+      <workItem from="1597847224402" duration="2770000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
+    <option name="version" value="3" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="WindowStateProjectService">
     <state x="337" y="360" key="#SQL_Dialects" timestamp="1597771375243">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="337" y="360" key="#SQL_Dialects/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597771375243" />
-    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser" timestamp="1597770661003">
+    <state x="552" y="177" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1597848215672">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597770661003" />
-    <state x="610" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog" timestamp="1597765683313">
+    <state x="552" y="177" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597848215672" />
+    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser" timestamp="1597849880040">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="610" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597765683313" />
-    <state x="764" y="241" key="NewPhpClassDialog" timestamp="1597767998140">
+    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597849880040" />
+    <state x="720" y="308" key="#com.intellij.ide.util.TreeClassChooserDialog" timestamp="1597849505775">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="764" y="241" key="NewPhpClassDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597767998140" />
+    <state x="720" y="308" key="#com.intellij.ide.util.TreeClassChooserDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597849505775" />
+    <state x="610" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog" timestamp="1597849467295">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="610" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597849467295" />
+    <state x="764" y="241" key="NewPhpClassDialog" timestamp="1597849708905">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="764" y="241" key="NewPhpClassDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597849708905" />
     <state x="795" y="442" key="NewPhpFileDialog" timestamp="1597765870644">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

@@ -11,7 +11,7 @@ function dd($d) {
 
 $db = new Database([
     'host' => 'localhost',
-    'name' => 'localflix',
+    'name' => 'support',
     'user' => 'root',
     'pass' => '',
 ]);
@@ -41,10 +41,21 @@ $db = new Database([
 //dd($result);
 //dd($db->debug());
 
-$result = $db->table('users')->insert(
-    ['name' => 'John doe', 'email' => 'john4@email.com'],
-    ['name']
-);
-dd($result);
+//$result = $db->table('users')->insert(
+//    ['name' => 'Habib Hadi', 'email' => 'john4@email.com'],
+//    ['name']
+//);
+//dd($result);
+
+//$result = $db->table('users')->update(
+//    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
+//    ['id' => 3],
+//    ['name']
+//);
+//
+//dd($result);
+
+//$result = $db->table('users')->delete(['id' => 3]);
+//dd($result);
 
 $db->disconnect();

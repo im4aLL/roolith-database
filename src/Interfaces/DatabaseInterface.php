@@ -156,7 +156,7 @@ interface DatabaseInterface
      * example ['name' => 'John doe', 'email' => 'john@email.com']
      * @param $uniqueArray
      * example ['email']
-     * @return bool | object ['affectedRow' => 1, 'insertedId' => 1, 'isDuplicate' => 1]
+     * @return bool | InsertResponseInterface
      */
     public function insert($array, $uniqueArray = []);
 
@@ -166,7 +166,7 @@ interface DatabaseInterface
      * @param $array
      * @param $whereArray
      * @param array $uniqueArray
-     * @return bool|object
+     * @return bool|UpdateResponseInterface
      * ['affectedRow' => 1, isDuplicate => 1]
      */
     public function update($array, $whereArray, $uniqueArray = []);
@@ -175,7 +175,7 @@ interface DatabaseInterface
      * Delete query
      *
      * @param $whereArray
-     * @return bool|object
+     * @return bool|DeleteResponseInterface
      * ['affectedRow' => 1]
      */
     public function delete($whereArray);

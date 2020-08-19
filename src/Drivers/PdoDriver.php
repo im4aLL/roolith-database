@@ -253,7 +253,53 @@ class PdoDriver implements DriverInterface
      */
     public function update($table, $array, $whereArray, $uniqueArray = [])
     {
-        // TODO: Implement update() method.
+        $result = [
+            'data' => [
+                'affectedRow' => 0,
+                'isDuplicate' => false,
+            ],
+            'debug' => null,
+        ];
+
+        $fields = [];
+        $executeArray = [];
+
+        foreach ($array as $key => $val) {
+            $fields[] = $key.' = :'.$key;
+            $executeArray[':'.$key] = $val;
+        }
+
+        $fieldsString = implode(', ',$fields);
+        $result['data']['isDuplicate'] = $this->isAlreadyExists($table, $array, $uniqueArray, $whereArray);
+
+        if($result['data']['isDuplicate'] === false && ($whereArray !== null || (is_array($whereArray) && count($whereArray) > 0))) {
+            if(is_array($whereArray)) {
+                $affectedTo = [];
+
+                foreach($whereArray as $key=>$val){
+                    $affectedTo[] = $key." = '".$val."'";
+                }
+
+                $whereCond = ' WHERE '.implode(" AND ", $affectedTo);
+            } else {
+                $whereCond = ' WHERE '.$whereArray;
+            }
+
+            $qryStr = 'UPDATE '.$table.' SET '. $fieldsString . $whereCond;
+
+            try {
+                $qry = $this->pdo->prepare($qryStr);
+                $qry->execute($executeArray);
+
+                $result['data']['affectedRow'] = $qry->rowCount();
+                $result['debug'] = ['string' => $qryStr, 'value' => $executeArray, 'method' => null];
+            }
+            catch (PDOException $PDOException){
+                throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -261,6 +307,40 @@ class PdoDriver implements DriverInterface
      */
     public function delete($table, $whereArray)
     {
-        // TODO: Implement delete() method.
+        $result = [
+            'data' => [
+                'affectedRow' => 0,
+            ],
+            'debug' => null,
+        ];
+
+        if($whereArray !== null || (is_array($whereArray) && count($whereArray)) > 0 ){
+            if(is_array($whereArray)) {
+                $affectedTo = array();
+                foreach($whereArray as $key=>$val) {
+                    $affectedTo[] = $key." = '".$val."'";
+                }
+                $whereCond = 'WHERE '.implode(" AND ", $affectedTo);
+            }
+            else {
+                $whereCond = 'WHERE '.$whereArray;
+            }
+
+            $qryStr = 'DELETE FROM '.$table.' '.$whereCond;
+
+            try {
+                $qry = $this->pdo->prepare($qryStr);
+                $qry->execute();
+
+                $result['data']['affectedRow'] = $qry->rowCount();
+                $result['debug'] = ['string' => $qryStr, 'value' => $whereArray, 'method' => null];
+
+            }
+            catch (PDOException $PDOException){
+                throw new Exception($PDOException->getMessage() . ' Query: '.$qryStr.' '.$PDOException->getTraceAsString());
+            }
+        }
+
+        return $result;
     }
 }

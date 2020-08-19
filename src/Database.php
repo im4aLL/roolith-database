@@ -5,6 +5,9 @@ use Roolith\Drivers\PdoDriver;
 use Roolith\Interfaces\DatabaseInterface;
 use Roolith\Interfaces\DriverInterface;
 use Roolith\Interfaces\PaginatorInterface;
+use Roolith\Responses\DeleteResponse;
+use Roolith\Responses\InsertResponse;
+use Roolith\Responses\UpdateResponse;
 
 class Database implements DatabaseInterface
 {
@@ -21,7 +24,11 @@ class Database implements DatabaseInterface
         }
 
         if (count($config) > 0) {
-            $this->connect($config);
+            try {
+                $this->connect($config);
+            } catch (Exceptions\Exception $e) {
+                echo $e->getMessage();
+            }
         }
     }
 
@@ -38,11 +45,11 @@ class Database implements DatabaseInterface
                     case 'SQLite':
                     case 'SQL':
                     default:
-                        $this->driver = new PdoDriver($config);
+                        $this->driver = new PdoDriver();
                         break;
                 }
             } else {
-                $this->driver = new PdoDriver($config);
+                $this->driver = new PdoDriver();
             }
         }
 
@@ -208,7 +215,7 @@ class Database implements DatabaseInterface
             $resultArray = $this->driver->insert($this->tableName, $array, $uniqueArray);
             $this->queryDebug = $resultArray['debug'];
 
-            return (object) $resultArray['data'];
+            return new InsertResponse($resultArray['data']);
         } catch (Exceptions\Exception $e) {
             echo $e->getMessage();
         }
@@ -223,7 +230,16 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        // TODO: Implement update() method.
+        try {
+            $resultArray = $this->driver->update($this->tableName, $array, $whereArray, $uniqueArray);
+            $this->queryDebug = $resultArray['debug'];
+
+            return new UpdateResponse($resultArray['data']);
+        } catch (Exceptions\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return false;
     }
 
     /**
@@ -233,6 +249,15 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        // TODO: Implement delete() method.
+        try {
+            $resultArray = $this->driver->delete($this->tableName, $whereArray);
+            $this->queryDebug = $resultArray['debug'];
+
+            return new DeleteResponse($resultArray['data']);
+        } catch (Exceptions\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return false;
     }
 }
