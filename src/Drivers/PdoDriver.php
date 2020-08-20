@@ -407,4 +407,35 @@ class PdoDriver implements DriverInterface
     {
         $this->debugMode = $mode;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getQuerySuffix($string = '', $whereCondition = '', $limit = 0, $offset = 0)
+    {
+        $resultArray = [
+            'condition' => '',
+            'limit' => '',
+            'string' => '',
+        ];
+
+        if (strlen($whereCondition) > 0) {
+            $string .= ' WHERE ' . $whereCondition;
+            $resultArray['condition'] = 'WHERE ' . $whereCondition;
+        }
+
+        if ($limit > 0) {
+            $string .= " LIMIT $limit";
+
+            if ($offset > 0) {
+                $string .= " OFFSET $offset";
+            }
+
+            $resultArray['limit'] = "$offset, $limit";
+        }
+
+        $resultArray['string'] = $string;
+
+        return $resultArray;
+    }
 }

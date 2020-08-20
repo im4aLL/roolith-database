@@ -23,6 +23,10 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demo/index.php" beforeDir="false" afterPath="$PROJECT_DIR$/demo/index.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Database.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Database.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Drivers/PdoDriver.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Drivers/PdoDriver.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Interfaces/DatabaseInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/DatabaseInterface.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Interfaces/DriverInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/DriverInterface.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Interfaces/PaginatorInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/PaginatorInterface.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,6 +115,7 @@
       <workItem from="1597765609844" duration="5137000" />
       <workItem from="1597830979777" duration="6547000" />
       <workItem from="1597847224402" duration="12177000" />
+      <workItem from="1597923495331" duration="13924000" />
     </task>
     <servers />
   </component>
@@ -138,10 +143,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="552" y="177" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597848215672" />
-    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser" timestamp="1597855143110">
+    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser" timestamp="1597935589544">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597855143110" />
+    <state x="765" y="200" key="#com.intellij.ide.util.MemberChooser/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597935589544" />
     <state x="720" y="308" key="#com.intellij.ide.util.TreeClassChooserDialog" timestamp="1597849505775">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -150,10 +155,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="610" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597849467295" />
-    <state x="764" y="241" key="NewPhpClassDialog" timestamp="1597849708905">
+    <state x="764" y="241" key="NewPhpClassDialog" timestamp="1597924428266">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="764" y="241" key="NewPhpClassDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597849708905" />
+    <state x="764" y="241" key="NewPhpClassDialog/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1597924428266" />
     <state x="795" y="442" key="NewPhpFileDialog" timestamp="1597765870644">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

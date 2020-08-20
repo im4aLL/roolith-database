@@ -119,4 +119,19 @@ interface DriverInterface
      * @return $this
      */
     public function setDebugMode($mode);
+
+    /**
+     * Get query suffix
+     *
+     * @param string $string
+     * @param string $whereCondition
+     * @param int $limit
+     * @param int $offset
+     * @return array [
+        'condition' => '',
+        'limit' => '',
+        'string' => '',
+     ]
+     */
+    public function getQuerySuffix($string = '', $whereCondition = '', $limit = 0, $offset = 0);
 }

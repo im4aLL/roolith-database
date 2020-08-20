@@ -119,6 +119,8 @@ class Database implements DatabaseInterface
      */
     public function count()
     {
+        $this->get();
+
         return $this->total;
     }
 
@@ -181,10 +183,12 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function paginate($number)
+    public function paginate($param)
     {
+        $paginate = new Paginate($param);
+
         if (is_callable($this->queryFn)) {
-            call_user_func($this->queryFn, $this->whereCondition);
+            call_user_func($this->queryFn, $this->whereCondition, $paginate->limit(), $paginate->offset());
             $this->queryFn = null;
         } else {
             $this->select([])->get();
@@ -193,7 +197,9 @@ class Database implements DatabaseInterface
         $this->whereCondition = '';
         $this->driver->resetConditionalQueryString();
 
-        return $this->result;
+        $paginate->setItems($this->result);
+
+        return $paginate;
     }
 
     /**
@@ -213,11 +219,9 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        $this->queryFn = function ($whereCondition = '') use ($string, $method) {
+        $this->queryFn = function ($whereCondition = '', $limit = 0, $offset = 0) use ($string, $method) {
             try {
-                if (strlen($whereCondition) > 0) {
-                    $string .= ' WHERE ' . $whereCondition;
-                }
+                $string = $this->driver->getQuerySuffix($string, $whereCondition, $limit, $offset)['string'];
 
                 $resultArray = $method ? $this->driver->query($string, $method): $this->driver->query($string);
                 $this->result = $resultArray['data'];
@@ -237,8 +241,14 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        $this->queryFn = function ($whereCondition = '') use ($array) {
+        $this->queryFn = function ($whereCondition = '', $limit = 0, $offset = 0) use ($array) {
             try {
+                $querySuffix = $this->driver->getQuerySuffix('', $whereCondition, $limit, $offset);
+
+                if (strlen($querySuffix['limit']) > 0) {
+                    $array['limit'] = $querySuffix['limit'];
+                }
+
                 if (strlen($whereCondition) > 0) {
                     $array['condition'] = 'WHERE ' . $whereCondition;
                 }

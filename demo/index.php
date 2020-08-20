@@ -67,7 +67,26 @@ $db = new Database([
 //$result = $db->debugMode()->table('users')->pluck(['name', 'email']);
 //dd($result);
 
-$result = $db->debugMode()->query("SELECT * FROM users")->paginate(1);
+//$total = $db->query("SELECT id FROM projects")->count();
+//$result = $db->debugMode()->query("SELECT id, name FROM projects")->paginate([
+//    'perPage' => 5,
+//    'pageUrl' => 'http://localhost/roolith-database/demo',
+//    'primaryColumn' => 'id',
+//    'pageParam' => 'page',
+//    'total' => $total,
+//]);
+//dd($result);
+
+$total = $db->query("SELECT id FROM projects")->count();
+$result = $db->debugMode()->table('projects')->select([
+    'field' => ['id', 'name']
+])->paginate([
+    'perPage' => 5,
+    'pageUrl' => 'http://localhost/roolith-database/demo',
+    'primaryColumn' => 'id',
+    'pageParam' => 'page',
+    'total' => $total,
+]);
 dd($result);
 
 $db->disconnect();

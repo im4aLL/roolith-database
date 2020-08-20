@@ -90,7 +90,13 @@ interface DatabaseInterface
     /**
      * Pagination
      *
-     * @param $number
+     * @param $array [
+        'perPage' => 1,
+        'pageUrl' => 'http://localhost/roolith-database/demo',
+        'primaryColumn' => 'id',
+        'currentPage' => 1,
+        'pageParam' => 'page',
+     ]
      * @return PaginatorInterface
      *
      {
@@ -98,10 +104,10 @@ interface DatabaseInterface
         "perPage": 15,
         "currentPage": 1,
         "lastPage": 4,
-        "firstPage_url": "http://example.com?page=1",
-        "lastPage_url": "http://example.com?page=4",
-        "nextPage_url": "http://example.com?page=2",
-        "prevPage_url": null,
+        "firstPageUrl": "http://example.com?page=1",
+        "lastPageUrl": "http://example.com?page=4",
+        "nextPageUrl": "http://example.com?page=2",
+        "prevPageUrl": null,
         "path": "http://example.com",
         "from": 1,
         "to": 15,
@@ -110,7 +116,7 @@ interface DatabaseInterface
         ]
      }
      */
-    public function paginate($number);
+    public function paginate($array);
 
     /**
      * Database raw query
