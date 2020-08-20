@@ -81,12 +81,13 @@ $total = $db->query("SELECT id FROM projects")->count();
 $result = $db->debugMode()->table('projects')->select([
     'field' => ['id', 'name']
 ])->paginate([
-    'perPage' => 5,
+    'perPage' => 1,
     'pageUrl' => 'http://localhost/roolith-database/demo',
     'primaryColumn' => 'id',
     'pageParam' => 'page',
     'total' => $total,
 ]);
-dd($result);
+dd($result->getDetails());
+dd($result->pageNumbers(10));
 
 $db->disconnect();

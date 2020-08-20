@@ -1,8 +1,6 @@
 <?php
 namespace Roolith;
 
-
-use Roolith\Interfaces\DriverInterface;
 use Roolith\Interfaces\PaginatorInterface;
 
 class Paginate implements PaginatorInterface
@@ -161,7 +159,33 @@ class Paginate implements PaginatorInterface
      */
     public function pageNumbers($limit = 15)
     {
-        // TODO: Implement pageNumbers() method.
+        $pageNumbers = [];
+
+        if ($limit >= $this->totalPage()) {
+            for ($i = 1; $i <= $this->totalPage(); $i++) {
+                $pageNumbers[] = $i;
+            }
+        } else {
+            $diff = 3;
+
+            for ($i = 1; $i <= $diff; $i++) {
+                $pageNumbers[] = $i;
+            }
+
+            $pageNumbers[] = '.';
+
+            for ($i = 1; $i <= ($limit - $diff * 2); $i++) {
+                $pageNumbers[] = 'a';
+            }
+
+            $pageNumbers[] = '.';
+
+            for ($i = ($this->totalPage() - $diff + 1); $i <= $this->totalPage(); $i++) {
+                $pageNumbers[] = $i;
+            }
+        }
+
+        return $pageNumbers;
     }
 
     /**
