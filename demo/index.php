@@ -30,7 +30,7 @@ $db = new Database([
 //$result = $db->query("SELECT * FROM users")->get();
 //dd($result);
 
-//$result = $db->table('users')->select([
+//$result = $db->debugMode()->table('users')->select([
 //    'field' => ['name', 'email'],
 //    'condition' => 'WHERE id > 0',
 //    'limit' => '0, 10',
@@ -39,7 +39,6 @@ $db = new Database([
 //])->first();
 //
 //dd($result);
-//dd($db->debug());
 
 //$result = $db->table('users')->insert(
 //    ['name' => 'Habib Hadi', 'email' => 'john4@email.com'],
@@ -60,7 +59,7 @@ $db = new Database([
 
 //$result = $db->debugMode()->table('users')->where('name', '%Hadi%', 'LIKE')->get();
 //dd($result);
-
+//
 //$result = $db->debugMode()->table('users')->find(1);
 //dd($result);
 
@@ -77,17 +76,17 @@ $db = new Database([
 //]);
 //dd($result);
 
-$total = $db->query("SELECT id FROM projects")->count();
-$result = $db->debugMode()->table('projects')->select([
-    'field' => ['id', 'name']
-])->paginate([
-    'perPage' => 1,
-    'pageUrl' => 'http://localhost/roolith-database/demo',
-    'primaryColumn' => 'id',
-    'pageParam' => 'page',
-    'total' => $total,
-]);
-dd($result->getDetails());
-dd($result->pageNumbers(10));
+//$total = $db->query("SELECT id FROM projects")->count();
+//$result = $db->debugMode()->table('projects')->select([
+//    'field' => ['id', 'name']
+//])->paginate([
+//    'perPage' => 1,
+//    'pageUrl' => 'http://localhost/roolith-database/demo',
+//    'primaryColumn' => 'id',
+//    'pageParam' => 'page',
+//    'total' => $total,
+//]);
+//dd($result->getDetails());
+//dd($result->pageNumbers());
 
 $db->disconnect();

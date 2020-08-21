@@ -115,9 +115,16 @@ class PdoDriver implements DriverInterface
         return $result;
     }
 
+    /**
+     * If string starts with
+     *
+     * @param $haystack
+     * @param $needle
+     * @return bool
+     */
     protected function startsWith($haystack, $needle)
     {
-        return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== FALSE;
+        return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== false;
     }
 
     /**
@@ -125,6 +132,10 @@ class PdoDriver implements DriverInterface
      */
     public function buildConditionQueryString($array)
     {
+        if (!isset($array['expression'])) {
+            $array['expression'] = '=';
+        }
+
         if (strlen($this->whereCondition) > 0) {
             $this->whereCondition .= ' '.$array['operator'].' ';
         }
@@ -142,14 +153,6 @@ class PdoDriver implements DriverInterface
         $this->whereCondition = '';
 
         return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function limitNumberOfRowsString($total, $offset)
-    {
-        // TODO: Implement limitNumberOfRowsString() method.
     }
 
     /**
@@ -190,11 +193,25 @@ class PdoDriver implements DriverInterface
         return $result;
     }
 
+    /**
+     * Build select field string
+     *
+     * @param $array
+     * @return string
+     */
     protected function buildFieldSelectString($array)
     {
         return (isset($array['field']) && count($array['field']) > 0) ? implode(', ', $array['field']): '*';
     }
 
+    /**
+     * Build select field query string
+     *
+     * @param $table
+     * @param $fieldString
+     * @param $array
+     * @return string
+     */
     protected function buildQueryString($table, $fieldString, $array)
     {
         $qryStr = 'SELECT '.$fieldString.' FROM `'.$table.'` '.((isset($array['condition']) && $array['condition'] !== null) ? $array['condition'] : '');
@@ -265,6 +282,15 @@ class PdoDriver implements DriverInterface
         return $result;
     }
 
+    /**
+     * If record already exists
+     *
+     * @param $table
+     * @param array $array
+     * @param array $uniqueArray
+     * @param array $whereArray
+     * @return bool
+     */
     protected function isAlreadyExists($table, $array = [], $uniqueArray = [], $whereArray = [])
     {
         $result = false;
@@ -346,6 +372,12 @@ class PdoDriver implements DriverInterface
         return $result;
     }
 
+    /**
+     * Prepare where array
+     *
+     * @param $whereArray string|array
+     * @return string
+     */
     protected function prepareWhereArray($whereArray)
     {
         if(is_array($whereArray)) {

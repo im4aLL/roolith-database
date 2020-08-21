@@ -52,15 +52,6 @@ interface DriverInterface
     public function resetConditionalQueryString();
 
     /**
-     * Get limit query string
-     *
-     * @param $total
-     * @param $offset
-     * @return string
-     */
-    public function limitNumberOfRowsString($total, $offset);
-
-    /**
      * Database select query
      *
      * @param $table

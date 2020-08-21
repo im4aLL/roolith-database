@@ -24,9 +24,8 @@
       <change beforePath="$PROJECT_DIR$/demo/index.php" beforeDir="false" afterPath="$PROJECT_DIR$/demo/index.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Database.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Database.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Drivers/PdoDriver.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Drivers/PdoDriver.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Interfaces/DatabaseInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/DatabaseInterface.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Interfaces/DriverInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/DriverInterface.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Interfaces/PaginatorInterface.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Interfaces/PaginatorInterface.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Paginate.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Paginate.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -115,7 +114,8 @@
       <workItem from="1597765609844" duration="5137000" />
       <workItem from="1597830979777" duration="6547000" />
       <workItem from="1597847224402" duration="12177000" />
-      <workItem from="1597923495331" duration="13924000" />
+      <workItem from="1597923495331" duration="15596000" />
+      <workItem from="1597997403811" duration="4017000" />
     </task>
     <servers />
   </component>

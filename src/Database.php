@@ -107,7 +107,7 @@ class Database implements DatabaseInterface
     {
         $this->get();
 
-        if ($this->count() > 0) {
+        if ($this->result > 0) {
             return $this->result[0];
         }
 
@@ -159,8 +159,13 @@ class Database implements DatabaseInterface
      */
     public function find($id)
     {
+        $conditionQueryString = $this->driver->buildConditionQueryString([
+            'name' => 'id',
+            'value' => $id,
+        ]);
+
         return $this->select([
-            'condition' => 'WHERE `id` = '.$id,
+            'condition' => $this->driver->getQuerySuffix('', $conditionQueryString)['string'],
         ])->first();
     }
 
@@ -250,7 +255,7 @@ class Database implements DatabaseInterface
                 }
 
                 if (strlen($whereCondition) > 0) {
-                    $array['condition'] = 'WHERE ' . $whereCondition;
+                    $array['condition'] = $this->driver->getQuerySuffix('', $whereCondition)['string'];
                 }
 
                 $resultArray = $this->driver->select($this->tableName, $array);
@@ -321,10 +326,10 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function debugMode()
+    public function debugMode($mode = true)
     {
         if ($this->driver) {
-            $this->driver->setDebugMode(true);
+            $this->driver->setDebugMode($mode);
         }
 
         return $this;

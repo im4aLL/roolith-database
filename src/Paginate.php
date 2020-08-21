@@ -161,27 +161,62 @@ class Paginate implements PaginatorInterface
     {
         $pageNumbers = [];
 
-        if ($limit >= $this->totalPage()) {
+        if ($limit >= $this->totalPage() || $this->totalPage() < 10) {
             for ($i = 1; $i <= $this->totalPage(); $i++) {
                 $pageNumbers[] = $i;
             }
         } else {
-            $diff = 3;
+            $pageNumbers = $this->getSmartPageNumbers($this->currentPage(), $this->totalPage());
+        }
 
-            for ($i = 1; $i <= $diff; $i++) {
+        return $pageNumbers;
+    }
+
+    /**
+     * Get smart style page number by current and total page
+     *
+     * @param $currentPage
+     * @param $totalPage
+     * @return array
+     */
+    private function getSmartPageNumbers($currentPage, $totalPage)
+    {
+        $pageNumbers = [];
+        $diff = 2;
+
+        $firstChunk = [1, 2, 3];
+        $lastChunk = [$totalPage - 2, $totalPage - 1, $totalPage];
+
+        if ($currentPage < $totalPage) {
+            $loopStartAt = $currentPage - $diff;
+            if ($loopStartAt < 1) {
+                $loopStartAt = 1;
+            }
+
+            $loopEndAt = $loopStartAt + ($diff * 2);
+            if ($loopEndAt > $totalPage) {
+                $loopEndAt = $totalPage;
+                $loopStartAt = $loopEndAt - ($diff * 2);
+            }
+
+            if (!in_array($loopStartAt, $firstChunk)) {
+                foreach ($firstChunk as $i) {
+                    $pageNumbers[] = $i;
+                }
+
+                $pageNumbers[] = '.';
+            }
+
+            for ($i = $loopStartAt; $i <= $loopEndAt; $i++) {
                 $pageNumbers[] = $i;
             }
 
-            $pageNumbers[] = '.';
+            if (!in_array($loopEndAt, $lastChunk)) {
+                $pageNumbers[] = '.';
 
-            for ($i = 1; $i <= ($limit - $diff * 2); $i++) {
-                $pageNumbers[] = 'a';
-            }
-
-            $pageNumbers[] = '.';
-
-            for ($i = ($this->totalPage() - $diff + 1); $i <= $this->totalPage(); $i++) {
-                $pageNumbers[] = $i;
+                foreach ($lastChunk as $i) {
+                    $pageNumbers[] = $i;
+                }
             }
         }
 
