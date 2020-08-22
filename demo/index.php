@@ -22,7 +22,7 @@ $db = new Database([
 //    'user' => 'root',
 //    'pass' => '',
 //]);
-
+//
 //$result = $db->query("SELECT * FROM users")->get();
 //dd($result);
 
@@ -33,7 +33,7 @@ $db = new Database([
 //    'orderBy' => 'name',
 //    'groupBy' => 'name',
 //])->first();
-//
+
 //dd($result);
 
 //$result = $db->table('users')->insert(
@@ -47,7 +47,7 @@ $db = new Database([
 //    ['id' => 1],
 //    ['name']
 //);
-//
+
 //dd($result);
 
 //$result = $db->table('users')->delete(['id' => 3]);
@@ -55,7 +55,7 @@ $db = new Database([
 
 //$result = $db->debugMode()->table('users')->where('name', '%Hadi%', 'LIKE')->get();
 //dd($result);
-//
+
 //$result = $db->debugMode()->table('users')->find(1);
 //dd($result);
 
