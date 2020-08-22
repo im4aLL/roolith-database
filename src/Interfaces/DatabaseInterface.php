@@ -40,7 +40,7 @@ interface DatabaseInterface
     /**
      * Return first item of records
      *
-     * @return mixed
+     * @return false|array
      */
     public function first();
 

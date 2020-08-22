@@ -105,7 +105,9 @@ class Database implements DatabaseInterface
      */
     public function first()
     {
-        $this->get();
+        if (!$this->result) {
+            $this->get();
+        }
 
         if ($this->result > 0) {
             return $this->result[0];
@@ -119,7 +121,9 @@ class Database implements DatabaseInterface
      */
     public function count()
     {
-        $this->get();
+        if (!$this->result) {
+            $this->get();
+        }
 
         return $this->total;
     }

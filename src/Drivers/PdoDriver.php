@@ -24,8 +24,8 @@ class PdoDriver implements DriverInterface
      */
     public function connect($config)
     {
-        if (count($config) === 0) {
-            return false;
+        if (is_array($config) && count($config) === 0) {
+            throw new Exception('Invalid configuration!');
         }
 
         try {
@@ -39,14 +39,23 @@ class PdoDriver implements DriverInterface
 
     protected function getPdo($config)
     {
+        if (is_string($config)) {
+            return $this->getPdoByDsn($config);
+        }
+
         $type = isset($config['type']) ? strtolower($config['type']) : strtolower(DbConstant::DEFAULT_TYPE);
+        $user = $config['user'];
+        $pass = $config['pass'];
         $host = $config['host'];
         $port = isset($config['port']) ? $config['port'] : DbConstant::DEFAULT_PORT[DbConstant::DEFAULT_TYPE];
         $dbname = $config['name'];
-        $user = $config['user'];
-        $pass = $config['pass'];
 
         $dsn = $type.":host=$host;port=$port;dbname=$dbname";
+
+        return $this->getPdoByDsn($dsn, $type, $user, $pass);
+    }
+
+    protected function getPdoByDsn($dsn, $type = null, $user = null, $pass = null) {
         $opt = [];
 
         if ($type === 'mysql') {
@@ -56,7 +65,11 @@ class PdoDriver implements DriverInterface
             ];
         }
 
-        return new PDO($dsn, $user, $pass, $opt);
+        if ($type && $user && $pass) {
+            return new PDO($dsn, $user, $pass, $opt);
+        }
+
+        return new PDO($dsn);
     }
 
     /**
