@@ -27,11 +27,7 @@ class Database implements DatabaseInterface
         }
 
         if (count($config) > 0) {
-            try {
-                $this->connect($config);
-            } catch (Exceptions\Exception $e) {
-                echo $e->getMessage();
-            }
+            $this->connect($config);
         }
     }
 

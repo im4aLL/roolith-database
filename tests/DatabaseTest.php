@@ -190,7 +190,11 @@ class DatabaseTest extends TestCase
 
     public function testShouldPaginate()
     {
-        $result = $this->db->table('users')->paginate(['perPage' => 1, 'total' => 100, 'pageUrl' => 'http://localhost/roolith-database/demo']);
+        $result = $this->db->table('users')->paginate([
+            'perPage' => 1,
+            'total' => 100,
+            'pageUrl' => 'http://localhost/roolith-database/demo'
+        ]);
         $this->assertInstanceOf(PaginatorInterface::class, $result);
     }
 }

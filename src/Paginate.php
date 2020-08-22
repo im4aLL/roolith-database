@@ -288,7 +288,7 @@ class Paginate implements PaginatorInterface
      */
     public function getDetails()
     {
-        return [
+        return (object) [
             "total" => $this->total(),
             "perPage" => $this->count(),
             "currentPage" => $this->currentPage(),
