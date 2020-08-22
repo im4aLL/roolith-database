@@ -11,21 +11,17 @@ function dd($d) {
 
 $db = new Database([
     'host' => 'localhost',
-    'name' => 'support',
+    'name' => 'roolith_database',
     'user' => 'root',
-    'pass' => '',
+    'pass' => 'hadi',
 ]);
 
-//try {
-//    $db->connect([
-//        'host' => 'localhost',
-//        'name' => 'localflix',
-//        'user' => 'root',
-//        'pass' => '',
-//    ]);
-//} catch (\Roolith\Exceptions\Exception $e) {
-//    echo $e->getMessage();
-//}
+//$db->connect([
+//    'host' => 'localhost',
+//    'name' => 'roolith_database',
+//    'user' => 'root',
+//    'pass' => '',
+//]);
 
 //$result = $db->query("SELECT * FROM users")->get();
 //dd($result);
@@ -41,14 +37,14 @@ $db = new Database([
 //dd($result);
 
 //$result = $db->table('users')->insert(
-//    ['name' => 'Habib Hadi', 'email' => 'john4@email.com'],
-//    ['name']
+//    ['name' => 'Brannon Bruen', 'email' => 'bschmeler@pacocha.net'],
+//    ['email']
 //);
 //dd($result);
 
 //$result = $db->table('users')->update(
 //    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
-//    ['id' => 3],
+//    ['id' => 1],
 //    ['name']
 //);
 //

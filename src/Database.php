@@ -2,9 +2,9 @@
 namespace Roolith;
 
 use Roolith\Drivers\PdoDriver;
+use Roolith\Exceptions\Exception;
 use Roolith\Interfaces\DatabaseInterface;
 use Roolith\Interfaces\DriverInterface;
-use Roolith\Interfaces\PaginatorInterface;
 use Roolith\Responses\DeleteResponse;
 use Roolith\Responses\InsertResponse;
 use Roolith\Responses\UpdateResponse;
@@ -56,7 +56,11 @@ class Database implements DatabaseInterface
             }
         }
 
-        return $this->driver->connect($config);
+        try {
+            return $this->driver->connect($config);
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     /**
@@ -105,11 +109,9 @@ class Database implements DatabaseInterface
      */
     public function first()
     {
-        if (!$this->result) {
-            $this->get();
-        }
+        $this->get();
 
-        if ($this->result > 0) {
+        if ($this->total > 0) {
             return $this->result[0];
         }
 
@@ -121,9 +123,7 @@ class Database implements DatabaseInterface
      */
     public function count()
     {
-        if (!$this->result) {
-            $this->get();
-        }
+        $this->get();
 
         return $this->total;
     }

@@ -11,7 +11,6 @@ interface DatabaseInterface
      * @param $config
      * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '', 'type' => 'MySQL']
      * @return bool
-     * @throws Exception
      */
     public function connect($config);
 
@@ -75,7 +74,7 @@ interface DatabaseInterface
      * Get data by id
      *
      * @param $id
-     * @return mixed
+     * @return object|false
      */
     public function find($id);
 
