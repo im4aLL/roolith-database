@@ -1,8 +1,8 @@
 <?php
-namespace Roolith\Responses;
+namespace Roolith\Store\Responses;
 
 
-use Roolith\Interfaces\DeleteResponseInterface;
+use Roolith\Store\Interfaces\DeleteResponseInterface;
 
 class DeleteResponse implements DeleteResponseInterface
 {

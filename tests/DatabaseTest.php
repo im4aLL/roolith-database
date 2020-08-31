@@ -1,10 +1,10 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Roolith\Database;
-use Roolith\Interfaces\DeleteResponseInterface;
-use Roolith\Interfaces\InsertResponseInterface;
-use Roolith\Interfaces\PaginatorInterface;
-use Roolith\Interfaces\UpdateResponseInterface;
+use Roolith\Store\Database;
+use Roolith\Store\Interfaces\DeleteResponseInterface;
+use Roolith\Store\Interfaces\InsertResponseInterface;
+use Roolith\Store\Interfaces\PaginatorInterface;
+use Roolith\Store\Interfaces\UpdateResponseInterface;
 
 class DatabaseTest extends TestCase
 {

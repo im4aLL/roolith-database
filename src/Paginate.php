@@ -1,7 +1,7 @@
 <?php
-namespace Roolith;
+namespace Roolith\Store;
 
-use Roolith\Interfaces\PaginatorInterface;
+use Roolith\Store\Interfaces\PaginatorInterface;
 
 class Paginate implements PaginatorInterface
 {

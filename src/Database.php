@@ -1,13 +1,13 @@
 <?php
-namespace Roolith;
+namespace Roolith\Store;
 
-use Roolith\Drivers\PdoDriver;
-use Roolith\Exceptions\Exception;
-use Roolith\Interfaces\DatabaseInterface;
-use Roolith\Interfaces\DriverInterface;
-use Roolith\Responses\DeleteResponse;
-use Roolith\Responses\InsertResponse;
-use Roolith\Responses\UpdateResponse;
+use Roolith\Store\Drivers\PdoDriver;
+use Roolith\Store\Exceptions\Exception;
+use Roolith\Store\Interfaces\DatabaseInterface;
+use Roolith\Store\Interfaces\DriverInterface;
+use Roolith\Store\Responses\DeleteResponse;
+use Roolith\Store\Responses\InsertResponse;
+use Roolith\Store\Responses\UpdateResponse;
 
 class Database implements DatabaseInterface
 {

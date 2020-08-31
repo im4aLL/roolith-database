@@ -8,7 +8,7 @@ composer require roolith/database
 
 #### Usage
 ```php
-use Roolith\Database;
+use Roolith\Store\Database;
 
 $db = new Database();
 $db->connect([

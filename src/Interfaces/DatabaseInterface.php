@@ -1,7 +1,7 @@
 <?php
-namespace Roolith\Interfaces;
+namespace Roolith\Store\Interfaces;
 
-use Roolith\Exceptions\Exception;
+use Roolith\Store\Exceptions\Exception;
 
 interface DatabaseInterface
 {

@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Roolith\Paginate;
+use Roolith\Store\Paginate;
 
 class PaginateTest extends TestCase
 {

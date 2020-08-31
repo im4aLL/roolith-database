@@ -1,11 +1,11 @@
 <?php
-namespace Roolith\Drivers;
+namespace Roolith\Store\Drivers;
 
 use PDO;
 use PDOException;
-use Roolith\Constants\DbConstant;
-use Roolith\Exceptions\Exception;
-use Roolith\Interfaces\DriverInterface;
+use Roolith\Store\Constants\DbConstant;
+use Roolith\Store\Exceptions\Exception;
+use Roolith\Store\Interfaces\DriverInterface;
 
 class PdoDriver implements DriverInterface
 {

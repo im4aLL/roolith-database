@@ -1,5 +1,5 @@
 <?php
-namespace Roolith\Constants;
+namespace Roolith\Store\Constants;
 
 
 use PDO;

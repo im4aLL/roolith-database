@@ -1,5 +1,5 @@
 <?php
-use Roolith\Database;
+use Roolith\Store\Database;
 
 require __DIR__ .'/../vendor/autoload.php';
 

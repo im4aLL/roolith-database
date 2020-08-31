@@ -1,8 +1,8 @@
 <?php
-namespace Roolith\Responses;
+namespace Roolith\Store\Responses;
 
 
-use Roolith\Interfaces\InsertResponseInterface;
+use Roolith\Store\Interfaces\InsertResponseInterface;
 
 class InsertResponse implements InsertResponseInterface
 {

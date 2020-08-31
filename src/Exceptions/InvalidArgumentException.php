@@ -1,5 +1,5 @@
 <?php
-namespace Roolith\Exceptions;
+namespace Roolith\Store\Exceptions;
 
 class InvalidArgumentException extends Exception
 {

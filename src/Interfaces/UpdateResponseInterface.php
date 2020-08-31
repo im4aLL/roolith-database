@@ -1,5 +1,5 @@
 <?php
-namespace Roolith\Interfaces;
+namespace Roolith\Store\Interfaces;
 
 
 interface UpdateResponseInterface extends QueryResponseInterface

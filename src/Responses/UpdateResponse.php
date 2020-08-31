@@ -1,8 +1,8 @@
 <?php
-namespace Roolith\Responses;
+namespace Roolith\Store\Responses;
 
 
-use Roolith\Interfaces\UpdateResponseInterface;
+use Roolith\Store\Interfaces\UpdateResponseInterface;
 
 class UpdateResponse implements UpdateResponseInterface
 {
