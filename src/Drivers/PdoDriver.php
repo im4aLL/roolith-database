@@ -65,7 +65,7 @@ class PdoDriver implements DriverInterface
             ];
         }
 
-        if ($type && $user && $pass) {
+        if ($type !== null && $user !== null && $pass !== null) {
             return new PDO($dsn, $user, $pass, $opt);
         }
 

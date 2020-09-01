@@ -9,22 +9,17 @@ function dd($d) {
     echo '</pre>';
 }
 
-$db = new Database([
+$db = new Database();
+
+$db->connect([
     'host' => 'localhost',
     'name' => 'roolith_database',
     'user' => 'root',
-    'pass' => 'hadi',
+    'pass' => '',
 ]);
 
-//$db->connect([
-//    'host' => 'localhost',
-//    'name' => 'roolith_database',
-//    'user' => 'root',
-//    'pass' => '',
-//]);
-//
-//$result = $db->query("SELECT * FROM users")->get();
-//dd($result);
+$result = $db->query("SELECT * FROM users")->get();
+dd($result);
 
 //$result = $db->debugMode()->table('users')->select([
 //    'field' => ['name', 'email'],
