@@ -119,7 +119,15 @@ class Paginate implements PaginatorInterface
 
     protected function getPageUrlWithParam()
     {
-        return $this->pageUrl . '?' . $this->pageParam . '=';
+        $questionMark = '?';
+        $andMark = '&';
+
+        $joinMark = $questionMark;
+        if ($this->stringContains($this->pageUrl, $questionMark)) {
+            $joinMark = $andMark;
+        }
+
+        return $this->pageUrl . $joinMark . $this->pageParam . '=';
     }
 
     /**
@@ -302,5 +310,17 @@ class Paginate implements PaginatorInterface
             "to" => $this->offset() + $this->limit(),
             "data" => $this->items(),
         ];
+    }
+
+    /**
+     * If string contains a piece
+     *
+     * @param $string
+     * @param $piece
+     * @return bool
+     */
+    protected function stringContains($string, $piece)
+    {
+        return strpos($string, $piece) !== false;
     }
 }
