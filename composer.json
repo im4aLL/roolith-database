@@ -20,5 +20,5 @@
     "autoload": {
         "psr-4": {"Roolith\\Store\\": "src/"}
     },
-    "version": "1.0.2"
+    "version": "1.0.3"
 }
