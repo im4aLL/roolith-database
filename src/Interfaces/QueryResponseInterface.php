@@ -7,5 +7,5 @@ interface QueryResponseInterface
     /**
      * @return bool
      */
-    public function success();
+    public function success(): bool;
 }

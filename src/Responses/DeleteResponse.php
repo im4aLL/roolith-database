@@ -11,12 +11,12 @@ class DeleteResponse implements DeleteResponseInterface
 
     public function __construct($result = [])
     {
-        $this->affectedRow = isset($result['affectedRow']) ? $result['affectedRow'] : 0;
+        $this->affectedRow = $result['affectedRow'] ?? 0;
     }
     /**
      * @inheritDoc
      */
-    public function affectedRow()
+    public function affectedRow(): int
     {
         return $this->affectedRow;
     }
@@ -24,7 +24,7 @@ class DeleteResponse implements DeleteResponseInterface
     /**
      * @inheritDoc
      */
-    public function success()
+    public function success(): bool
     {
         return $this->affectedRow() > 0;
     }

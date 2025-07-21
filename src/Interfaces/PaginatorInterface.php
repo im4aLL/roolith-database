@@ -9,35 +9,35 @@ interface PaginatorInterface
      *
      * @return int
      */
-    public function count();
+    public function count(): int;
 
     /**
      * Get total record count
      *
      * @return int
      */
-    public function total();
+    public function total(): int;
 
     /**
      * Get total page count
      *
      * @return int
      */
-    public function totalPage();
+    public function totalPage(): int;
 
     /**
      * Current page number
      *
      * @return int
      */
-    public function currentPage();
+    public function currentPage(): int;
 
     /**
      * Whether has more pages
      *
      * @return bool
      */
-    public function hasPages();
+    public function hasPages(): bool;
 
     /**
      * Get first record
@@ -58,7 +58,7 @@ interface PaginatorInterface
      *
      * @return array
      */
-    public function items();
+    public function items(): array;
 
     /**
      * Set items
@@ -66,35 +66,35 @@ interface PaginatorInterface
      * @param array $items
      * @return $this
      */
-    public function setItems($items);
+    public function setItems(array $items): PaginatorInterface;
 
     /**
      * First page url
      *
      * @return string
      */
-    public function firstPageUrl();
+    public function firstPageUrl(): string;
 
     /**
      * Last page url
      *
      * @return string
      */
-    public function lastPageUrl();
+    public function lastPageUrl(): string;
 
     /**
      * Next page url
      *
      * @return string
      */
-    public function nextPageUrl();
+    public function nextPageUrl(): string;
 
     /**
      * Previous page url
      *
      * @return string
      */
-    public function prevPageUrl();
+    public function prevPageUrl(): string;
 
     /**
      * Limit pagination number
@@ -103,41 +103,41 @@ interface PaginatorInterface
      * @param int $limit
      * @return array
      */
-    public function pageNumbers($limit = 15);
+    public function pageNumbers(int $limit = 15): array;
 
     /**
      * Get limit
      *
      * @return int
      */
-    public function limit();
+    public function limit(): int;
 
     /**
      * Get offset
      *
      * @return int
      */
-    public function offset();
+    public function offset(): int;
 
     /**
      * @return int
      */
-    public function getFirstPageNumber();
+    public function getFirstPageNumber(): int;
 
     /**
      * @return int
      */
-    public function getLastPageNumber();
+    public function getLastPageNumber(): int;
 
     /**
      * @return int
      */
-    public function getNextPageNumber();
+    public function getNextPageNumber(): int;
 
     /**
      * @return int
      */
-    public function getPrevPageNumber();
+    public function getPrevPageNumber(): int;
 
     /**
      * Get details
@@ -160,5 +160,5 @@ interface PaginatorInterface
         ]
      }
      */
-    public function getDetails();
+    public function getDetails(): object;
 }

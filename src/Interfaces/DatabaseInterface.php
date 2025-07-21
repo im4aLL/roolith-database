@@ -2,6 +2,9 @@
 namespace Roolith\Store\Interfaces;
 
 use Roolith\Store\Exceptions\Exception;
+use Roolith\Store\Responses\DeleteResponse;
+use Roolith\Store\Responses\InsertResponse;
+use Roolith\Store\Responses\UpdateResponse;
 
 interface DatabaseInterface
 {
@@ -12,21 +15,21 @@ interface DatabaseInterface
      * ['host' => '', 'port' => '', 'name' => '', 'user' => '', 'pass' => '', 'type' => 'MySQL']
      * @return bool
      */
-    public function connect($config);
+    public function connect($config): bool;
 
     /**
      * Disconnect from database
      *
      * @return bool
      */
-    public function disconnect();
+    public function disconnect(): bool;
 
     /**
      * Reset all states
      *
      * @return $this
      */
-    public function reset();
+    public function reset(): DatabaseInterface;
 
     /**
      * Return records
@@ -34,7 +37,7 @@ interface DatabaseInterface
      * @return iterable
      * should return array of records or empty array
      */
-    public function get();
+    public function get(): iterable;
 
     /**
      * Return first item of records
@@ -48,7 +51,7 @@ interface DatabaseInterface
      *
      * @return int
      */
-    public function count();
+    public function count(): int;
 
     /**
      * Add where condition to existing query
@@ -58,7 +61,7 @@ interface DatabaseInterface
      * @param $expression string
      * @return $this
      */
-    public function where($name, $value, $expression);
+    public function where($name, $value, string $expression = '='): DatabaseInterface;
 
     /**
      * Add or where condition to existing query
@@ -68,7 +71,7 @@ interface DatabaseInterface
      * @param $expression string
      * @return $this
      */
-    public function orWhere($name, $value, $expression);
+    public function orWhere($name, $value, string $expression = '='): DatabaseInterface;
 
     /**
      * Get data by id
@@ -84,7 +87,7 @@ interface DatabaseInterface
      * @param $nameArray
      * @return iterable
      */
-    public function pluck($nameArray);
+    public function pluck($nameArray): iterable;
 
     /**
      * Pagination
@@ -115,7 +118,7 @@ interface DatabaseInterface
         ]
      }
      */
-    public function paginate($array);
+    public function paginate(array $array): PaginatorInterface;
 
     /**
      * Database raw query
@@ -124,7 +127,7 @@ interface DatabaseInterface
      * @param $method
      * @return $this
      */
-    public function query($string, $method = null);
+    public function query($string, $method = null): DatabaseInterface;
 
     /**
      * Set table name
@@ -132,7 +135,7 @@ interface DatabaseInterface
      * @param $name
      * @return $this
      */
-    public function table($name);
+    public function table($name): DatabaseInterface;
 
     /**
      * Database select query
@@ -147,18 +150,18 @@ interface DatabaseInterface
      ]
      * @return $this
      */
-    public function select($array);
+    public function select($array): DatabaseInterface;
 
     /**
      * Insert query
      *
      * @param $array
      * example ['name' => 'John doe', 'email' => 'john@email.com']
-     * @param $uniqueArray
+     * @param array $uniqueArray
      * example ['email']
-     * @return InsertResponseInterface
+     * @return InsertResponse
      */
-    public function insert($array, $uniqueArray = []);
+    public function insert($array, array $uniqueArray = []): InsertResponse;
 
     /**
      * Update query
@@ -166,22 +169,22 @@ interface DatabaseInterface
      * @param $array
      * @param $whereArray
      * @param array $uniqueArray
-     * @return UpdateResponseInterface
+     * @return UpdateResponse
      */
-    public function update($array, $whereArray, $uniqueArray = []);
+    public function update($array, $whereArray, array $uniqueArray = []): UpdateResponse;
 
     /**
      * Delete query
      *
      * @param $whereArray
-     * @return DeleteResponseInterface
+     * @return DeleteResponse
      */
-    public function delete($whereArray);
+    public function delete($whereArray): DeleteResponse;
 
     /**
      * Turn on debug mode
      *
      * @return $this
      */
-    public function debugMode();
+    public function debugMode(): DatabaseInterface;
 }

@@ -5,6 +5,7 @@ use Roolith\Store\Drivers\PdoDriver;
 use Roolith\Store\Exceptions\Exception;
 use Roolith\Store\Interfaces\DatabaseInterface;
 use Roolith\Store\Interfaces\DriverInterface;
+use Roolith\Store\Interfaces\PaginatorInterface;
 use Roolith\Store\Responses\DeleteResponse;
 use Roolith\Store\Responses\InsertResponse;
 use Roolith\Store\Responses\UpdateResponse;
@@ -34,7 +35,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function connect($config)
+    public function connect($config): bool
     {
         if (!$this->driver) {
             if (isset($config['type'])) {
@@ -62,7 +63,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function disconnect()
+    public function disconnect(): bool
     {
         if (!$this->driver) {
             return false;
@@ -74,7 +75,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function reset()
+    public function reset(): DatabaseInterface
     {
         $this->result = null;
         $this->total = 0;
@@ -85,7 +86,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function get()
+    public function get(): iterable
     {
         if (is_callable($this->queryFn)) {
             call_user_func($this->queryFn, $this->whereCondition);
@@ -117,7 +118,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function count()
+    public function count(): int
     {
         $this->get();
 
@@ -127,7 +128,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function where($name, $value, $expression = '=')
+    public function where($name, $value, string $expression = '='): DatabaseInterface
     {
         $this->whereCondition = $this->driver->buildConditionQueryString([
             'name' => $name,
@@ -142,7 +143,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function orWhere($name, $value, $expression = '=')
+    public function orWhere($name, $value, string $expression = '='): DatabaseInterface
     {
         $this->whereCondition = $this->driver->buildConditionQueryString([
             'name' => $name,
@@ -172,7 +173,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function pluck($nameArray)
+    public function pluck($nameArray): iterable
     {
         $opt = [
             'field' => $nameArray
@@ -188,9 +189,9 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function paginate($param)
+    public function paginate($array): PaginatorInterface
     {
-        $paginate = new Paginate($param);
+        $paginate = new Paginate($array);
 
         if (is_callable($this->queryFn)) {
             call_user_func($this->queryFn, $this->whereCondition, $paginate->limit(), $paginate->offset());
@@ -210,7 +211,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function table($name)
+    public function table($name): DatabaseInterface
     {
         $this->tableName = $name;
 
@@ -220,7 +221,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function query($string, $method = null)
+    public function query($string, $method = null): DatabaseInterface
     {
         $this->reset();
 
@@ -242,7 +243,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function select($array)
+    public function select($array): DatabaseInterface
     {
         $this->reset();
 
@@ -272,7 +273,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function insert($array, $uniqueArray = [])
+    public function insert($array, array $uniqueArray = []): InsertResponse
     {
         $this->reset();
 
@@ -290,7 +291,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function update($array, $whereArray, $uniqueArray = [])
+    public function update($array, $whereArray, array $uniqueArray = []): UpdateResponse
     {
         $this->reset();
 
@@ -308,7 +309,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function delete($whereArray)
+    public function delete($whereArray): DeleteResponse
     {
         $this->reset();
 
@@ -326,7 +327,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function debugMode($mode = true)
+    public function debugMode($mode = true): DatabaseInterface
     {
         if ($this->driver) {
             $this->driver->setDebugMode($mode);

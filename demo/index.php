@@ -18,8 +18,8 @@ $db->connect([
     'pass' => '',
 ]);
 
-$result = $db->query("SELECT * FROM users")->get();
-dd($result);
+//$result = $db->query("SELECT * FROM users")->get();
+//dd($result);
 
 //$result = $db->debugMode()->table('users')->select([
 //    'field' => ['name', 'email'],
@@ -37,13 +37,13 @@ dd($result);
 //);
 //dd($result);
 
-//$result = $db->table('users')->update(
-//    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
-//    ['id' => 1],
-//    ['name']
-//);
+$result = $db->table('users')->update(
+    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
+    ['id' => 1],
+    ['name']
+);
 
-//dd($result);
+dd($result->success() ? 'true' : 'false');
 
 //$result = $db->table('users')->delete(['id' => 3]);
 //dd($result);

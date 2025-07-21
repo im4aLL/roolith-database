@@ -11,14 +11,14 @@ class UpdateResponse implements UpdateResponseInterface
 
     public function __construct($result = [])
     {
-        $this->affectedRow = isset($result['affectedRow']) ? $result['affectedRow'] : 0;
-        $this->isDuplicate = isset($result['isDuplicate']) ? $result['isDuplicate'] : 0;
+        $this->affectedRow = $result['affectedRow'] ?? null;
+        $this->isDuplicate = $result['isDuplicate'] ?? null;
     }
 
     /**
      * @inheritDoc
      */
-    public function affectedRow()
+    public function affectedRow(): int
     {
         return $this->affectedRow;
     }
@@ -26,7 +26,7 @@ class UpdateResponse implements UpdateResponseInterface
     /**
      * @inheritDoc
      */
-    public function isDuplicate()
+    public function isDuplicate(): bool
     {
         return $this->isDuplicate;
     }
@@ -34,8 +34,8 @@ class UpdateResponse implements UpdateResponseInterface
     /**
      * @inheritDoc
      */
-    public function success()
+    public function success(): bool
     {
-        return !$this->isDuplicate() && $this->affectedRow() > 0;
+        return !$this->isDuplicate() && $this->affectedRow() !== null;
     }
 }

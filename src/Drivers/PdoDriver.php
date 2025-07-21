@@ -22,7 +22,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function connect($config)
+    public function connect($config): bool
     {
         if (is_array($config) && count($config) === 0) {
             throw new Exception('Invalid configuration!');
@@ -34,10 +34,10 @@ class PdoDriver implements DriverInterface
             throw new Exception($PDOException->getMessage() .' '. $PDOException->getTraceAsString());
         }
 
-        return $this->pdo instanceof PDO;
+        return true;
     }
 
-    protected function getPdo($config)
+    protected function getPdo($config): PDO
     {
         if (is_string($config)) {
             return $this->getPdoByDsn($config);
@@ -47,7 +47,7 @@ class PdoDriver implements DriverInterface
         $user = $config['user'];
         $pass = $config['pass'];
         $host = $config['host'];
-        $port = isset($config['port']) ? $config['port'] : DbConstant::DEFAULT_PORT[DbConstant::DEFAULT_TYPE];
+        $port = $config['port'] ?? DbConstant::DEFAULT_PORT[DbConstant::DEFAULT_TYPE];
         $dbname = $config['name'];
 
         $dsn = $type.":host=$host;port=$port;dbname=$dbname";
@@ -55,7 +55,8 @@ class PdoDriver implements DriverInterface
         return $this->getPdoByDsn($dsn, $type, $user, $pass);
     }
 
-    protected function getPdoByDsn($dsn, $type = null, $user = null, $pass = null) {
+    protected function getPdoByDsn($dsn, $type = null, $user = null, $pass = null): PDO
+    {
         $opt = [];
 
         if ($type === 'mysql') {
@@ -75,7 +76,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function disconnect()
+    public function disconnect(): bool
     {
         $this->pdo = null;
 
@@ -87,7 +88,7 @@ class PdoDriver implements DriverInterface
      *
      * @return $this
      */
-    public function reset()
+    public function reset(): PdoDriver
     {
         $this->whereCondition = '';
 
@@ -97,7 +98,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function query($string, $method = DbConstant::DEFAULT_PDO_FETCH_METHOD)
+    public function query($string, $method = DbConstant::DEFAULT_PDO_FETCH_METHOD): array
     {
         $this->reset();
 
@@ -135,7 +136,7 @@ class PdoDriver implements DriverInterface
      * @param $needle
      * @return bool
      */
-    protected function startsWith($haystack, $needle)
+    protected function startsWith($haystack, $needle): bool
     {
         return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== false;
     }
@@ -143,7 +144,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function buildConditionQueryString($array)
+    public function buildConditionQueryString($array): string
     {
         if (!isset($array['expression'])) {
             $array['expression'] = '=';
@@ -161,7 +162,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function resetConditionalQueryString()
+    public function resetConditionalQueryString(): bool
     {
         $this->whereCondition = '';
 
@@ -171,7 +172,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function select($table, $array)
+    public function select($table, $array): iterable
     {
         $result = [
             'total' => null,
@@ -212,7 +213,7 @@ class PdoDriver implements DriverInterface
      * @param $array
      * @return string
      */
-    protected function buildFieldSelectString($array)
+    protected function buildFieldSelectString($array): string
     {
         return (isset($array['field']) && count($array['field']) > 0) ? implode(', ', $array['field']): '*';
     }
@@ -225,12 +226,12 @@ class PdoDriver implements DriverInterface
      * @param $array
      * @return string
      */
-    protected function buildQueryString($table, $fieldString, $array)
+    protected function buildQueryString($table, $fieldString, $array): string
     {
-        $qryStr = 'SELECT '.$fieldString.' FROM `'.$table.'` '.((isset($array['condition']) && $array['condition'] !== null) ? $array['condition'] : '');
+        $qryStr = 'SELECT '.$fieldString.' FROM `'.$table.'` '.($array['condition'] ?? '');
 
-        if(isset($array['groupbBy'])) {
-            $qryStr .= ' GROUP BY '.$array['groupbBy'];
+        if(isset($array['groupBy'])) {
+            $qryStr .= ' GROUP BY '.$array['groupBy'];
         }
 
         if(isset($array['orderBy'])) {
@@ -247,7 +248,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function insert($table, $array, $uniqueArray = [])
+    public function insert(string $table, array $array, array $uniqueArray = [])
     {
         $result = [
             'data' => [
@@ -304,7 +305,7 @@ class PdoDriver implements DriverInterface
      * @param array $whereArray
      * @return bool
      */
-    protected function isAlreadyExists($table, $array = [], $uniqueArray = [], $whereArray = [])
+    protected function isAlreadyExists($table, array $array = [], array $uniqueArray = [], array $whereArray = []): bool
     {
         $result = false;
 
@@ -339,7 +340,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function update($table, $array, $whereArray, $uniqueArray = [])
+    public function update(string $table, array $array, array $whereArray, array $uniqueArray = [])
     {
         $result = [
             'data' => [
@@ -359,7 +360,7 @@ class PdoDriver implements DriverInterface
         $fieldsString = implode(', ',$fields);
         $result['data']['isDuplicate'] = $this->isAlreadyExists($table, $array, $uniqueArray, $whereArray);
 
-        if($result['data']['isDuplicate'] === false && ($whereArray !== null || (is_array($whereArray) && count($whereArray) > 0))) {
+        if($result['data']['isDuplicate'] === false) {
             $whereCond = $this->prepareWhereArray($whereArray);
 
             $qryStr = 'UPDATE '.$table.' SET '. $fieldsString . $whereCond;
@@ -391,7 +392,7 @@ class PdoDriver implements DriverInterface
      * @param $whereArray string|array
      * @return string
      */
-    protected function prepareWhereArray($whereArray)
+    protected function prepareWhereArray($whereArray): string
     {
         if(is_array($whereArray)) {
             $affectedTo = [];
@@ -411,7 +412,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function delete($table, $whereArray)
+    public function delete(string $table, array $whereArray)
     {
         $result = [
             'data' => [
@@ -419,7 +420,7 @@ class PdoDriver implements DriverInterface
             ],
         ];
 
-        if($whereArray !== null || (is_array($whereArray) && count($whereArray)) > 0 ){
+        if(count($whereArray) > 0){
             $whereCond = $this->prepareWhereArray($whereArray);
 
             $qryStr = 'DELETE FROM '.$table.' '.$whereCond;
@@ -448,20 +449,21 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function setDebugMode($mode)
+    public function setDebugMode(bool $mode): DriverInterface
     {
         $this->debugMode = $mode;
+
+        return $this;
     }
 
     /**
      * @inheritDoc
      */
-    public function getQuerySuffix($string = '', $whereCondition = '', $limit = 0, $offset = 0)
+    public function getQuerySuffix(string $string = '', string $whereCondition = '', int $limit = 0, int $offset = 0): array
     {
         $resultArray = [
             'condition' => '',
             'limit' => '',
-            'string' => '',
         ];
 
         if (strlen($whereCondition) > 0) {

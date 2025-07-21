@@ -12,15 +12,15 @@ class InsertResponse implements InsertResponseInterface
 
     public function __construct($result = [])
     {
-        $this->affectedRow = isset($result['affectedRow']) ?  $result['affectedRow'] : 0;
-        $this->insertedId = isset($result['insertedId']) ? $result['insertedId'] : 0;
-        $this->isDuplicate = isset($result['isDuplicate']) ? $result['isDuplicate'] : 0;
+        $this->affectedRow = $result['affectedRow'] ?? 0;
+        $this->insertedId = $result['insertedId'] ?? 0;
+        $this->isDuplicate = $result['isDuplicate'] ?? 0;
     }
 
     /**
      * @inheritDoc
      */
-    public function affectedRow()
+    public function affectedRow(): int
     {
         return $this->affectedRow;
     }
@@ -28,7 +28,7 @@ class InsertResponse implements InsertResponseInterface
     /**
      * @inheritDoc
      */
-    public function insertedId()
+    public function insertedId(): int
     {
         return $this->insertedId;
     }
@@ -36,7 +36,7 @@ class InsertResponse implements InsertResponseInterface
     /**
      * @inheritDoc
      */
-    public function isDuplicate()
+    public function isDuplicate(): bool
     {
         return $this->isDuplicate;
     }
@@ -44,7 +44,7 @@ class InsertResponse implements InsertResponseInterface
     /**
      * @inheritDoc
      */
-    public function success()
+    public function success(): bool
     {
         return !$this->isDuplicate() && $this->insertedId() > 0;
     }

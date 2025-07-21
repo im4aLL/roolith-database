@@ -14,11 +14,11 @@ class Paginate implements PaginatorInterface
 
     public function __construct($param)
     {
-        $this->perPage = isset($param['perPage']) ? $param['perPage'] : 20;
-        $this->pageUrl = isset($param['pageUrl']) ? $param['pageUrl'] : $this->getCurrentPageUrl();
-        $this->primaryColumn = isset($param['primaryColumn']) ? $param['primaryColumn'] : 'id';
-        $this->pageParam = isset($param['pageParam']) ? $param['pageParam'] : 'page';
-        $this->total = isset($param['total']) ? $param['total'] : 0;
+        $this->perPage = $param['perPage'] ?? 20;
+        $this->pageUrl = $param['pageUrl'] ?? $this->getCurrentPageUrl();
+        $this->primaryColumn = $param['primaryColumn'] ?? 'id';
+        $this->pageParam = $param['pageParam'] ?? 'page';
+        $this->total = $param['total'] ?? 0;
     }
 
     /**
@@ -26,7 +26,7 @@ class Paginate implements PaginatorInterface
      *
      * @return string
      */
-    protected function getCurrentPageUrl()
+    protected function getCurrentPageUrl(): string
     {
         return parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     }
@@ -34,7 +34,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function count()
+    public function count(): int
     {
         return $this->perPage;
     }
@@ -42,7 +42,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function total()
+    public function total(): int
     {
         return $this->total;
     }
@@ -50,7 +50,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function totalPage()
+    public function totalPage(): int
     {
         return ceil($this->total() / $this->count());
     }
@@ -58,7 +58,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function currentPage()
+    public function currentPage(): int
     {
         $currentPageNumber = isset($_GET[$this->pageParam]) ? intval($_GET[$this->pageParam]) : 1;
 
@@ -68,7 +68,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function hasPages()
+    public function hasPages(): bool
     {
         return $this->currentPage() < $this->totalPage();
     }
@@ -102,7 +102,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function items()
+    public function items(): array
     {
         return $this->items;
     }
@@ -110,14 +110,14 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function setItems($items)
+    public function setItems(array $items): PaginatorInterface
     {
         $this->items = $items;
 
         return $this;
     }
 
-    protected function getPageUrlWithParam()
+    protected function getPageUrlWithParam(): string
     {
         $questionMark = '?';
         $andMark = '&';
@@ -133,7 +133,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function firstPageUrl()
+    public function firstPageUrl(): string
     {
         return $this->getPageUrlWithParam() . $this->getFirstPageNumber();
     }
@@ -141,7 +141,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function lastPageUrl()
+    public function lastPageUrl(): string
     {
         return $this->getPageUrlWithParam() . $this->getLastPageNumber();
     }
@@ -149,7 +149,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function nextPageUrl()
+    public function nextPageUrl(): string
     {
         return $this->getPageUrlWithParam() . $this->getNextPageNumber();
     }
@@ -157,7 +157,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function prevPageUrl()
+    public function prevPageUrl(): string
     {
         return $this->getPageUrlWithParam() . $this->getPrevPageNumber();
     }
@@ -165,7 +165,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function pageNumbers($limit = 15)
+    public function pageNumbers(int $limit = 15): array
     {
         $pageNumbers = [];
 
@@ -187,7 +187,7 @@ class Paginate implements PaginatorInterface
      * @param $totalPage
      * @return array
      */
-    private function getSmartPageNumbers($currentPage, $totalPage)
+    private function getSmartPageNumbers($currentPage, $totalPage): array
     {
         $pageNumbers = [];
         $diff = 2;
@@ -234,7 +234,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function limit()
+    public function limit(): int
     {
         return $this->perPage;
     }
@@ -242,7 +242,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function offset()
+    public function offset(): int
     {
         return $this->limit() * $this->currentPage() - $this->limit();
     }
@@ -250,7 +250,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function getFirstPageNumber()
+    public function getFirstPageNumber(): int
     {
         return 1;
     }
@@ -258,7 +258,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function getLastPageNumber()
+    public function getLastPageNumber(): int
     {
         return $this->totalPage();
     }
@@ -266,7 +266,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function getNextPageNumber()
+    public function getNextPageNumber(): int
     {
         $nextPageNumber = $this->currentPage() + 1;
 
@@ -280,7 +280,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function getPrevPageNumber()
+    public function getPrevPageNumber(): int
     {
         $prevPageNumber = $this->currentPage() - 1;
 
@@ -294,7 +294,7 @@ class Paginate implements PaginatorInterface
     /**
      * @inheritDoc
      */
-    public function getDetails()
+    public function getDetails(): object
     {
         return (object) [
             "total" => $this->total(),
@@ -319,7 +319,7 @@ class Paginate implements PaginatorInterface
      * @param $piece
      * @return bool
      */
-    protected function stringContains($string, $piece)
+    protected function stringContains($string, $piece): bool
     {
         return strpos($string, $piece) !== false;
     }

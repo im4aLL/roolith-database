@@ -7,5 +7,5 @@ interface DeleteResponseInterface extends QueryResponseInterface
     /**
      * @return int
      */
-    public function affectedRow();
+    public function affectedRow(): int;
 }

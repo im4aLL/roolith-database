@@ -7,10 +7,10 @@ interface UpdateResponseInterface extends QueryResponseInterface
     /**
      * @return int
      */
-    public function affectedRow();
+    public function affectedRow(): int;
 
     /**
      * @return bool
      */
-    public function isDuplicate();
+    public function isDuplicate(): bool;
 }

@@ -14,14 +14,14 @@ interface DriverInterface
      * @return bool
      * @throws Exception
      */
-    public function connect($config);
+    public function connect($config): bool;
 
     /**
      * Disconnect from database
      *
      * @return bool
      */
-    public function disconnect();
+    public function disconnect(): bool;
 
     /**
      * Database raw query
@@ -32,7 +32,7 @@ interface DriverInterface
      * ['total' => 0, 'data' => [], 'debug' => ['string' => '', 'value' => [], 'method' => '']]
      * @throws Exception
      */
-    public function query($string, $method = null);
+    public function query($string, $method = null): array;
 
     /**
      * Build condition string
@@ -42,14 +42,14 @@ interface DriverInterface
      * @param $array
      * @return string
      */
-    public function buildConditionQueryString($array);
+    public function buildConditionQueryString($array): string;
 
     /**
      * Reset conditional query string
      *
      * @return bool
      */
-    public function resetConditionalQueryString();
+    public function resetConditionalQueryString(): bool;
 
     /**
      * Database select query
@@ -66,7 +66,7 @@ interface DriverInterface
      * @return iterable
      * @throws Exception
      */
-    public function select($table, $array);
+    public function select($table, $array): iterable;
 
     /**
      * Insert query
@@ -79,7 +79,7 @@ interface DriverInterface
      * @return bool|array ['affectedRow' => 1, 'insertedId' => 1, 'isDuplicate' => 1]
      * @throws Exception
      */
-    public function insert($table, $array, $uniqueArray = []);
+    public function insert(string $table, array $array, array $uniqueArray = []);
 
     /**
      * Update query
@@ -91,7 +91,7 @@ interface DriverInterface
      * @return bool|array ['affectedRow' => 1, isDuplicate => 1]
      * @throws Exception
      */
-    public function update($table, $array, $whereArray, $uniqueArray = []);
+    public function update(string $table, array $array, array $whereArray, array $uniqueArray = []);
 
     /**
      * Delete query
@@ -101,7 +101,7 @@ interface DriverInterface
      * @return bool|array ['affectedRow' => 1]
      * @throws Exception
      */
-    public function delete($table, $whereArray);
+    public function delete(string $table, array $whereArray);
 
     /**
      * Set debug mode
@@ -109,7 +109,7 @@ interface DriverInterface
      * @param $mode bool
      * @return $this
      */
-    public function setDebugMode($mode);
+    public function setDebugMode(bool $mode): DriverInterface;
 
     /**
      * Get query suffix
@@ -119,10 +119,10 @@ interface DriverInterface
      * @param int $limit
      * @param int $offset
      * @return array [
-        'condition' => '',
-        'limit' => '',
-        'string' => '',
-     ]
+        * 'condition' => '',
+        * 'limit' => '',
+        * 'string' => '',
+     * ]
      */
-    public function getQuerySuffix($string = '', $whereCondition = '', $limit = 0, $offset = 0);
+    public function getQuerySuffix(string $string = '', string $whereCondition = '', int $limit = 0, int $offset = 0): array;
 }

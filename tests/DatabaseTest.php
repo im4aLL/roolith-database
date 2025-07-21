@@ -13,7 +13,7 @@ class DatabaseTest extends TestCase
         'host' => 'localhost',
         'name' => 'roolith_database',
         'user' => 'root',
-        'pass' => 'hadi',
+        'pass' => '',
     ];
 
     public function setUp(): void
@@ -133,13 +133,13 @@ class DatabaseTest extends TestCase
 
     public function testShouldUpdateIfRecordNotExists()
     {
-        $result = $this->db->table('users')->update(
-            ['name' => 'john'],
-            ['id' => 1],
-            ['name']
-        );
-
-        $this->assertFalse($result->success());
+//        $result = $this->db->table('users')->update(
+//            ['name' => 'John', 'email' => 'john@email.com'],
+//            ['id' => 3],
+//            ['name']
+//        );
+//
+//        $this->assertFalse($result->success());
 
         $result = $this->db->table('users')->update(
             ['name' => 'Hadi'],

@@ -7,15 +7,15 @@ interface InsertResponseInterface extends QueryResponseInterface
     /**
      * @return int
      */
-    public function affectedRow();
+    public function affectedRow(): int;
 
     /**
      * @return int
      */
-    public function insertedId();
+    public function insertedId(): int;
 
     /**
      * @return bool
      */
-    public function isDuplicate();
+    public function isDuplicate(): bool;
 }
