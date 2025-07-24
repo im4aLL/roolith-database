@@ -34,27 +34,27 @@ interface DatabaseInterface
     /**
      * Return records
      *
-     * @return iterable
-     * should return array of records or empty array
+     * @return array
+     * should return an array of records or empty array
      */
-    public function get(): iterable;
+    public function get(): array;
 
     /**
      * Return first item of records
      *
-     * @return false|array
+     * @return false|object
      */
     public function first();
 
     /**
-     * Get total count of result
+     * Get total count of a result
      *
      * @return int
      */
     public function count(): int;
 
     /**
-     * Add where condition to existing query
+     * Add where condition to an existing query
      *
      * @param $name
      * @param $value
@@ -64,7 +64,7 @@ interface DatabaseInterface
     public function where($name, $value, string $expression = '='): DatabaseInterface;
 
     /**
-     * Add or where condition to existing query
+     * Add or where condition to an existing query
      *
      * @param $name
      * @param $value
@@ -82,12 +82,12 @@ interface DatabaseInterface
     public function find($id);
 
     /**
-     * Retrieve array of items
+     * Retrieve an array of items
      *
      * @param $nameArray
-     * @return iterable
+     * @return array
      */
-    public function pluck($nameArray): iterable;
+    public function pluck($nameArray): array;
 
     /**
      * Pagination

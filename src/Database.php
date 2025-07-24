@@ -86,7 +86,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function get(): iterable
+    public function get(): array
     {
         if (is_callable($this->queryFn)) {
             call_user_func($this->queryFn, $this->whereCondition);
@@ -173,7 +173,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function pluck($nameArray): iterable
+    public function pluck($nameArray): array
     {
         $opt = [
             'field' => $nameArray
