@@ -18,8 +18,8 @@ $db->connect([
     'pass' => '',
 ]);
 
-//$result = $db->query("SELECT * FROM users")->get();
-//dd($result);
+$result = $db->query(" SELECT * FROM users")->get();
+dd($result);
 
 //$result = $db->debugMode()->table('users')->select([
 //    'field' => ['name', 'email'],
@@ -28,7 +28,7 @@ $db->connect([
 //    'orderBy' => 'name',
 //    'groupBy' => 'name',
 //])->first();
-
+//
 //dd($result);
 
 //$result = $db->table('users')->insert(
@@ -37,13 +37,13 @@ $db->connect([
 //);
 //dd($result);
 
-$result = $db->table('users')->update(
-    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
-    ['id' => 1],
-    ['name']
-);
-
-dd($result->success() ? 'true' : 'false');
+//$result = $db->table('users')->update(
+//    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
+//    ['id' => 1],
+//    ['name']
+//);
+//
+//dd($result->success() ? 'true' : 'false');
 
 //$result = $db->table('users')->delete(['id' => 3]);
 //dd($result);
@@ -57,8 +57,8 @@ dd($result->success() ? 'true' : 'false');
 //$result = $db->debugMode()->table('users')->pluck(['name', 'email']);
 //dd($result);
 
-//$total = $db->query("SELECT id FROM projects")->count();
-//$result = $db->debugMode()->query("SELECT id, name FROM projects")->paginate([
+//$total = $db->query("SELECT id FROM users")->count();
+//$result = $db->debugMode()->query("SELECT id, name FROM users")->paginate([
 //    'perPage' => 5,
 //    'pageUrl' => 'http://localhost/roolith-database/demo',
 //    'primaryColumn' => 'id',
@@ -67,8 +67,8 @@ dd($result->success() ? 'true' : 'false');
 //]);
 //dd($result);
 
-//$total = $db->query("SELECT id FROM projects")->count();
-//$result = $db->debugMode()->table('projects')->select([
+//$total = $db->query("SELECT id FROM users")->count();
+//$result = $db->debugMode()->table('users')->select([
 //    'field' => ['id', 'name']
 //])->paginate([
 //    'perPage' => 1,

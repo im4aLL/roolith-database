@@ -1,7 +1,6 @@
 <?php
 namespace Roolith\Store\Interfaces;
 
-use Roolith\Store\Exceptions\Exception;
 use Roolith\Store\Responses\DeleteResponse;
 use Roolith\Store\Responses\InsertResponse;
 use Roolith\Store\Responses\UpdateResponse;
@@ -18,7 +17,7 @@ interface DatabaseInterface
     public function connect($config): bool;
 
     /**
-     * Disconnect from database
+     * Disconnect from a database
      *
      * @return bool
      */
@@ -44,7 +43,7 @@ interface DatabaseInterface
      *
      * @return false|object
      */
-    public function first();
+    public function first(): object|bool;
 
     /**
      * Get total count of a result
@@ -79,7 +78,7 @@ interface DatabaseInterface
      * @param $id
      * @return object|false
      */
-    public function find($id);
+    public function find($id): object|bool;
 
     /**
      * Retrieve an array of items

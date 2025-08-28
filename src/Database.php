@@ -1,6 +1,7 @@
 <?php
 namespace Roolith\Store;
 
+use Closure;
 use Roolith\Store\Drivers\PdoDriver;
 use Roolith\Store\Exceptions\Exception;
 use Roolith\Store\Interfaces\DatabaseInterface;
@@ -12,20 +13,17 @@ use Roolith\Store\Responses\UpdateResponse;
 
 class Database implements DatabaseInterface
 {
-    protected $driver;
-    protected $result;
-    protected $total = 0;
-    protected $tableName;
-    protected $queryFn;
-    protected $whereCondition;
+    protected DriverInterface|null $driver;
+    protected array|null $result = null;
+    protected int $total = 0;
+    protected string $tableName = '';
+    protected Closure|null $queryFn = null;
+    protected string $whereCondition = '';
 
     public function __construct($config = [], DriverInterface $driver = null)
     {
         $this->whereCondition = '';
-
-        if ($driver) {
-            $this->driver = $driver;
-        }
+        $this->driver = $driver;
 
         if (count($config) > 0) {
             $this->connect($config);
@@ -38,19 +36,7 @@ class Database implements DatabaseInterface
     public function connect($config): bool
     {
         if (!$this->driver) {
-            if (isset($config['type'])) {
-                switch ($config['type']) {
-                    case 'MySQL':
-                    case 'PostgreSQL':
-                    case 'SQLite':
-                    case 'SQL':
-                    default:
-                        $this->driver = new PdoDriver();
-                        break;
-                }
-            } else {
-                $this->driver = new PdoDriver();
-            }
+            $this->driver = new PdoDriver();
         }
 
         try {
@@ -75,7 +61,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function reset(): DatabaseInterface
+    public function reset(): static
     {
         $this->result = null;
         $this->total = 0;
@@ -104,7 +90,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function first()
+    public function first(): object|bool
     {
         $this->get();
 
@@ -158,7 +144,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function find($id)
+    public function find($id): object|bool
     {
         $conditionQueryString = $this->driver->buildConditionQueryString([
             'name' => 'id',

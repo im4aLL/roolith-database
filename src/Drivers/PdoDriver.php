@@ -117,7 +117,7 @@ class PdoDriver implements DriverInterface
             $qry->execute();
             $qry->setFetchMode($method);
 
-            if ($this->startsWith($string, 'SELECT')) {
+            if (str_starts_with(strtolower(trim($string)), 'select')) {
                 $result['data'] = $qry->fetchAll();
             }
 
@@ -127,18 +127,6 @@ class PdoDriver implements DriverInterface
         }
 
         return $result;
-    }
-
-    /**
-     * If string starts with
-     *
-     * @param $haystack
-     * @param $needle
-     * @return bool
-     */
-    protected function startsWith($haystack, $needle): bool
-    {
-        return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== false;
     }
 
     /**
