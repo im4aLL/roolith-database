@@ -16,13 +16,13 @@ class Database implements DatabaseInterface
     protected DriverInterface|null $driver;
     protected array|null $result = null;
     protected int $total = 0;
-    protected string $tableName = '';
+    protected string $tableName = "";
     protected Closure|null $queryFn = null;
-    protected string $whereCondition = '';
+    protected string $whereCondition = "";
 
     public function __construct($config = [], DriverInterface $driver = null)
     {
-        $this->whereCondition = '';
+        $this->whereCondition = "";
         $this->driver = $driver;
 
         if (count($config) > 0) {
@@ -81,7 +81,7 @@ class Database implements DatabaseInterface
             $this->select([])->get();
         }
 
-        $this->whereCondition = '';
+        $this->whereCondition = "";
         $this->driver->resetConditionalQueryString();
 
         return $this->result;
@@ -114,13 +114,16 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function where($name, $value, string $expression = '='): DatabaseInterface
-    {
+    public function where(
+        $name,
+        $value,
+        string $expression = "=",
+    ): DatabaseInterface {
         $this->whereCondition = $this->driver->buildConditionQueryString([
-            'name' => $name,
-            'value' => $value,
-            'operator' => 'AND',
-            'expression' => $expression,
+            "name" => $name,
+            "value" => $value,
+            "operator" => "AND",
+            "expression" => $expression,
         ]);
 
         return $this;
@@ -129,13 +132,16 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function orWhere($name, $value, string $expression = '='): DatabaseInterface
-    {
+    public function orWhere(
+        $name,
+        $value,
+        string $expression = "=",
+    ): DatabaseInterface {
         $this->whereCondition = $this->driver->buildConditionQueryString([
-            'name' => $name,
-            'value' => $value,
-            'operator' => 'OR',
-            'expression' => $expression,
+            "name" => $name,
+            "value" => $value,
+            "operator" => "OR",
+            "expression" => $expression,
         ]);
 
         return $this;
@@ -147,12 +153,15 @@ class Database implements DatabaseInterface
     public function find($id): object|bool
     {
         $conditionQueryString = $this->driver->buildConditionQueryString([
-            'name' => 'id',
-            'value' => $id,
+            "name" => "id",
+            "value" => $id,
         ]);
 
         return $this->select([
-            'condition' => $this->driver->getQuerySuffix('', $conditionQueryString)['string'],
+            "condition" => $this->driver->getQuerySuffix(
+                "",
+                $conditionQueryString,
+            )["string"],
         ])->first();
     }
 
@@ -162,11 +171,11 @@ class Database implements DatabaseInterface
     public function pluck($nameArray): array
     {
         $opt = [
-            'field' => $nameArray
+            "field" => $nameArray,
         ];
 
         if ($this->whereCondition) {
-            $opt['condition'] = $this->whereCondition;
+            $opt["condition"] = $this->whereCondition;
         }
 
         return $this->select($opt)->get();
@@ -180,13 +189,18 @@ class Database implements DatabaseInterface
         $paginate = new Paginate($array);
 
         if (is_callable($this->queryFn)) {
-            call_user_func($this->queryFn, $this->whereCondition, $paginate->limit(), $paginate->offset());
+            call_user_func(
+                $this->queryFn,
+                $this->whereCondition,
+                $paginate->limit(),
+                $paginate->offset(),
+            );
             $this->queryFn = null;
         } else {
             $this->select([])->get();
         }
 
-        $this->whereCondition = '';
+        $this->whereCondition = "";
         $this->driver->resetConditionalQueryString();
 
         $paginate->setItems($this->result);
@@ -211,13 +225,24 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        $this->queryFn = function ($whereCondition = '', $limit = 0, $offset = 0) use ($string, $method) {
+        $this->queryFn = function (
+            $whereCondition = "",
+            $limit = 0,
+            $offset = 0,
+        ) use ($string, $method) {
             try {
-                $string = $this->driver->getQuerySuffix($string, $whereCondition, $limit, $offset)['string'];
+                $string = $this->driver->getQuerySuffix(
+                    $string,
+                    $whereCondition,
+                    $limit,
+                    $offset,
+                )["string"];
 
-                $resultArray = $method ? $this->driver->query($string, $method): $this->driver->query($string);
-                $this->result = $resultArray['data'];
-                $this->total = $resultArray['total'];
+                $resultArray = $method
+                    ? $this->driver->query($string, $method)
+                    : $this->driver->query($string);
+                $this->result = $resultArray["data"];
+                $this->total = $resultArray["total"];
             } catch (Exceptions\Exception $e) {
                 echo $e->getMessage();
             }
@@ -227,27 +252,56 @@ class Database implements DatabaseInterface
     }
 
     /**
+     * Database raw execute
+     *
+     * @param string $query
+     * @return mixed
+     */
+    public function execute(string $query): mixed
+    {
+        try {
+            return $this->driver->execute($query);
+        } catch (Exceptions\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return false;
+    }
+
+    /**
      * @inheritDoc
      */
     public function select($array): DatabaseInterface
     {
         $this->reset();
 
-        $this->queryFn = function ($whereCondition = '', $limit = 0, $offset = 0) use ($array) {
+        $this->queryFn = function (
+            $whereCondition = "",
+            $limit = 0,
+            $offset = 0,
+        ) use ($array) {
             try {
-                $querySuffix = $this->driver->getQuerySuffix('', $whereCondition, $limit, $offset);
+                $querySuffix = $this->driver->getQuerySuffix(
+                    "",
+                    $whereCondition,
+                    $limit,
+                    $offset,
+                );
 
-                if (strlen($querySuffix['limit']) > 0) {
-                    $array['limit'] = $querySuffix['limit'];
+                if (strlen($querySuffix["limit"]) > 0) {
+                    $array["limit"] = $querySuffix["limit"];
                 }
 
                 if (strlen($whereCondition) > 0) {
-                    $array['condition'] = $this->driver->getQuerySuffix('', $whereCondition)['string'];
+                    $array["condition"] = $this->driver->getQuerySuffix(
+                        "",
+                        $whereCondition,
+                    )["string"];
                 }
 
                 $resultArray = $this->driver->select($this->tableName, $array);
-                $this->result = $resultArray['data'];
-                $this->total = $resultArray['total'];
+                $this->result = $resultArray["data"];
+                $this->total = $resultArray["total"];
             } catch (Exceptions\Exception $e) {
                 echo $e->getMessage();
             }
@@ -264,9 +318,13 @@ class Database implements DatabaseInterface
         $this->reset();
 
         try {
-            $resultArray = $this->driver->insert($this->tableName, $array, $uniqueArray);
+            $resultArray = $this->driver->insert(
+                $this->tableName,
+                $array,
+                $uniqueArray,
+            );
 
-            return new InsertResponse($resultArray['data']);
+            return new InsertResponse($resultArray["data"]);
         } catch (Exceptions\Exception $e) {
             echo $e->getMessage();
         }
@@ -277,14 +335,22 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function update($array, $whereArray, array $uniqueArray = []): UpdateResponse
-    {
+    public function update(
+        $array,
+        $whereArray,
+        array $uniqueArray = [],
+    ): UpdateResponse {
         $this->reset();
 
         try {
-            $resultArray = $this->driver->update($this->tableName, $array, $whereArray, $uniqueArray);
+            $resultArray = $this->driver->update(
+                $this->tableName,
+                $array,
+                $whereArray,
+                $uniqueArray,
+            );
 
-            return new UpdateResponse($resultArray['data']);
+            return new UpdateResponse($resultArray["data"]);
         } catch (Exceptions\Exception $e) {
             echo $e->getMessage();
         }
@@ -302,7 +368,7 @@ class Database implements DatabaseInterface
         try {
             $resultArray = $this->driver->delete($this->tableName, $whereArray);
 
-            return new DeleteResponse($resultArray['data']);
+            return new DeleteResponse($resultArray["data"]);
         } catch (Exceptions\Exception $e) {
             echo $e->getMessage();
         }

@@ -60,7 +60,11 @@ interface DatabaseInterface
      * @param $expression string
      * @return $this
      */
-    public function where($name, $value, string $expression = '='): DatabaseInterface;
+    public function where(
+        $name,
+        $value,
+        string $expression = "=",
+    ): DatabaseInterface;
 
     /**
      * Add or where condition to an existing query
@@ -70,7 +74,11 @@ interface DatabaseInterface
      * @param $expression string
      * @return $this
      */
-    public function orWhere($name, $value, string $expression = '='): DatabaseInterface;
+    public function orWhere(
+        $name,
+        $value,
+        string $expression = "=",
+    ): DatabaseInterface;
 
     /**
      * Get data by id
@@ -129,6 +137,14 @@ interface DatabaseInterface
     public function query($string, $method = null): DatabaseInterface;
 
     /**
+     * Database raw execute
+     *
+     * @param string $string
+     * @return mixed
+     */
+    public function execute(string $string): mixed;
+
+    /**
      * Set table name
      *
      * @param $name
@@ -170,7 +186,11 @@ interface DatabaseInterface
      * @param array $uniqueArray
      * @return UpdateResponse
      */
-    public function update($array, $whereArray, array $uniqueArray = []): UpdateResponse;
+    public function update(
+        $array,
+        $whereArray,
+        array $uniqueArray = [],
+    ): UpdateResponse;
 
     /**
      * Delete query

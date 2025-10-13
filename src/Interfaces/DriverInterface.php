@@ -1,7 +1,6 @@
 <?php
 namespace Roolith\Store\Interfaces;
 
-
 use Roolith\Store\Exceptions\Exception;
 
 interface DriverInterface
@@ -33,6 +32,15 @@ interface DriverInterface
      * @throws Exception
      */
     public function query($string, $method = null): array;
+
+    /**
+     * Database raw execute
+     *
+     * @param $string
+     * @return mixed
+     * @throws Exception
+     */
+    public function execute(string $string): mixed;
 
     /**
      * Build condition string
@@ -79,7 +87,11 @@ interface DriverInterface
      * @return bool|array ['affectedRow' => 1, 'insertedId' => 1, 'isDuplicate' => 1]
      * @throws Exception
      */
-    public function insert(string $table, array $array, array $uniqueArray = []);
+    public function insert(
+        string $table,
+        array $array,
+        array $uniqueArray = [],
+    );
 
     /**
      * Update query
@@ -91,7 +103,12 @@ interface DriverInterface
      * @return bool|array ['affectedRow' => 1, isDuplicate => 1]
      * @throws Exception
      */
-    public function update(string $table, array $array, array $whereArray, array $uniqueArray = []);
+    public function update(
+        string $table,
+        array $array,
+        array $whereArray,
+        array $uniqueArray = [],
+    );
 
     /**
      * Delete query
@@ -119,10 +136,15 @@ interface DriverInterface
      * @param int $limit
      * @param int $offset
      * @return array [
-        * 'condition' => '',
-        * 'limit' => '',
-        * 'string' => '',
+     * 'condition' => '',
+     * 'limit' => '',
+     * 'string' => '',
      * ]
      */
-    public function getQuerySuffix(string $string = '', string $whereCondition = '', int $limit = 0, int $offset = 0): array;
+    public function getQuerySuffix(
+        string $string = "",
+        string $whereCondition = "",
+        int $limit = 0,
+        int $offset = 0,
+    ): array;
 }

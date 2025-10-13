@@ -1,24 +1,26 @@
 {
-    "name": "roolith/database",
-    "description": "PHP database driver",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Hadi",
-            "email": "me@habibhadi.com"
-        }
-    ],
-    "minimum-stability": "stable",
-    "require": {
-      "ext-pdo": "*"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^9.2",
-        "fakerphp/faker": "^1.24"
-    },
-    "autoload": {
-        "psr-4": {"Roolith\\Store\\": "src/"}
-    },
-    "version": "1.3.0"
+  "name": "roolith/database",
+  "description": "PHP database driver",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Hadi",
+      "email": "me@habibhadi.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "ext-pdo": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.2",
+    "fakerphp/faker": "^1.24"
+  },
+  "autoload": {
+    "psr-4": {
+      "Roolith\\Store\\": "src/"
+    }
+  },
+  "version": "1.4.0"
 }
