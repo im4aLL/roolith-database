@@ -4,6 +4,7 @@ namespace Roolith\Store;
 use Closure;
 use Roolith\Store\Drivers\PdoDriver;
 use Roolith\Store\Exceptions\Exception;
+use Roolith\Store\Exceptions\InvalidArgumentException;
 use Roolith\Store\Interfaces\DatabaseInterface;
 use Roolith\Store\Interfaces\DriverInterface;
 use Roolith\Store\Interfaces\PaginatorInterface;
@@ -19,6 +20,9 @@ class Database implements DatabaseInterface
     protected string $tableName = "";
     protected Closure|null $queryFn = null;
     protected string $whereCondition = "";
+    protected string|null $orderBy = null;
+    protected int|null $queryLimit = null;
+    protected int $queryOffset = 0;
 
     public function __construct($config = [], ?DriverInterface $driver = null)
     {
@@ -64,6 +68,9 @@ class Database implements DatabaseInterface
         $this->whereCondition = "";
         $this->queryFn = null;
         $this->tableName = "";
+        $this->orderBy = null;
+        $this->queryLimit = null;
+        $this->queryOffset = 0;
 
         if ($this->driver) {
             $this->driver->resetConditionalQueryString();
@@ -100,6 +107,9 @@ class Database implements DatabaseInterface
     {
         $this->queryFn = null;
         $this->whereCondition = "";
+        $this->orderBy = null;
+        $this->queryLimit = null;
+        $this->queryOffset = 0;
 
         if ($this->driver) {
             $this->driver->resetConditionalQueryString();
@@ -156,13 +166,17 @@ class Database implements DatabaseInterface
     public function where(
         $name,
         $value,
-        string $expression = "=",
+        $expression = "=",
     ): DatabaseInterface {
+        [$column, $op, $val] = $this->normalizeWhereArgs(
+            func_get_args(),
+        );
+
         $this->whereCondition = $this->requireDriver()->buildConditionQueryString([
-            "name" => $name,
-            "value" => $value,
+            "name" => $column,
+            "value" => $val,
             "operator" => "AND",
-            "expression" => $expression,
+            "expression" => $op,
         ]);
 
         return $this;
@@ -174,14 +188,98 @@ class Database implements DatabaseInterface
     public function orWhere(
         $name,
         $value,
-        string $expression = "=",
+        $expression = "=",
     ): DatabaseInterface {
+        [$column, $op, $val] = $this->normalizeWhereArgs(
+            func_get_args(),
+        );
+
         $this->whereCondition = $this->requireDriver()->buildConditionQueryString([
-            "name" => $name,
-            "value" => $value,
+            "name" => $column,
+            "value" => $val,
             "operator" => "OR",
-            "expression" => $expression,
+            "expression" => $op,
         ]);
+
+        return $this;
+    }
+
+    /**
+     * Normalize where() args supporting both styles:
+     * old: where($col, $val, $expr) and new: where($col, $op, $val).
+     *
+     * @param array $args
+     * @return array{0:mixed,1:string,2:mixed} [column, operator, value]
+     */
+    protected function normalizeWhereArgs(array $args): array
+    {
+        if (count($args) <= 2) {
+            return [$args[0] ?? null, "=", $args[1] ?? null];
+        }
+
+        [$name, $middle, $last] = $args;
+
+        if (is_string($middle) && self::isWhereOperator($middle)) {
+            return [$name, $middle, $last];
+        }
+
+        return [$name, (string) $last, $middle];
+    }
+
+    protected static function isWhereOperator(mixed $value): bool
+    {
+        if (!is_string($value)) {
+            return false;
+        }
+
+        return in_array(
+            strtoupper(trim($value)),
+            ["=", "!=", "<>", "<", "<=", ">", ">=", "LIKE", "NOT LIKE", "IN", "NOT IN"],
+            true,
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function orderBy(string $column, string $direction = "ASC"): DatabaseInterface
+    {
+        $direction = strtoupper(trim($direction));
+
+        if (!in_array($direction, ["ASC", "DESC"], true)) {
+            throw new InvalidArgumentException("Invalid order direction.");
+        }
+
+        $this->orderBy = $column . " " . $direction;
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function limit(int $limit, int $offset = 0): DatabaseInterface
+    {
+        if ($limit < 0 || $offset < 0) {
+            throw new InvalidArgumentException("Invalid limit or offset.");
+        }
+
+        $this->queryLimit = $limit;
+        $this->queryOffset = $offset;
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function offset(int $offset): DatabaseInterface
+    {
+        if ($offset < 0) {
+            throw new InvalidArgumentException("Invalid offset.");
+        }
+
+        $this->queryOffset = $offset;
 
         return $this;
     }
@@ -195,21 +293,25 @@ class Database implements DatabaseInterface
         $this->requireTable();
 
         $driver->resetConditionalQueryString();
-        $conditionQueryString = $driver->buildConditionQueryString([
-            "name" => "id",
-            "value" => $id,
-        ]);
-        $bindings = $driver->getWhereBindings();
-        $driver->resetConditionalQueryString();
-        $this->whereCondition = "";
 
-        return $this->select([
-            "condition" => $driver->getQuerySuffix(
-                "",
-                $conditionQueryString,
-            )["string"],
-            "bindings" => $bindings,
-        ])->first();
+        try {
+            $conditionQueryString = $driver->buildConditionQueryString([
+                "name" => "id",
+                "value" => $id,
+            ]);
+            $bindings = $driver->getWhereBindings();
+
+            return $this->select([
+                "condition" => $driver->getQuerySuffix(
+                    "",
+                    $conditionQueryString,
+                )["string"],
+                "bindings" => $bindings,
+            ])->first();
+        } finally {
+            $driver->resetConditionalQueryString();
+            $this->whereCondition = "";
+        }
     }
 
     /**
@@ -223,6 +325,7 @@ class Database implements DatabaseInterface
 
         if ($this->whereCondition) {
             $opt["condition"] = $this->whereCondition;
+            $opt["bindings"] = $this->requireDriver()->getWhereBindings();
         }
 
         return $this->select($opt)->get();
@@ -238,6 +341,12 @@ class Database implements DatabaseInterface
         $paginate = new Paginate($array);
 
         try {
+            if ($paginate->limit() <= 0) {
+                $paginate->setItems([]);
+
+                return $paginate;
+            }
+
             if (!is_callable($this->queryFn)) {
                 $this->requireTable();
                 $this->select([]);
@@ -321,11 +430,26 @@ class Database implements DatabaseInterface
     {
         $this->resetResult();
 
+        $helperOrderBy = $this->orderBy;
+        $helperLimit = $this->queryLimit;
+        $helperOffset = $this->queryOffset;
+
         $this->queryFn = function (
             $whereCondition = "",
             $limit = 0,
             $offset = 0,
-        ) use ($array, $bindings) {
+        ) use ($array, $bindings, $helperOrderBy, $helperLimit, $helperOffset) {
+            if (!isset($array["orderBy"]) && $helperOrderBy !== null) {
+                $array["orderBy"] = $helperOrderBy;
+            }
+
+            if (!isset($array["limit"]) && ($helperLimit !== null || $helperOffset > 0)) {
+                $limitValue = $helperLimit ?? 9223372036854775807;
+                $array["limit"] = $helperOffset > 0
+                    ? $limitValue . " OFFSET " . $helperOffset
+                    : (string) $limitValue;
+            }
+
             $querySuffix = $this->driver->getQuerySuffix(
                 "",
                 $whereCondition,
@@ -411,7 +535,7 @@ class Database implements DatabaseInterface
      */
     public function update(
         $array,
-        $whereArray,
+        array $whereArray,
         array $uniqueArray = [],
     ): UpdateResponse {
         $this->resetResult();
@@ -449,6 +573,88 @@ class Database implements DatabaseInterface
     {
         if ($this->driver) {
             $this->driver->setDebugMode($mode);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function inTransaction(): bool
+    {
+        if (!$this->driver) {
+            return false;
+        }
+
+        return $this->driver->inTransaction();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function beginTransaction(): bool
+    {
+        return $this->requireDriver()->beginTransaction();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function commit(): bool
+    {
+        return $this->requireDriver()->commit();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function rollBack(): bool
+    {
+        return $this->requireDriver()->rollBack();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function transaction(callable $callback): mixed
+    {
+        $this->beginTransaction();
+
+        try {
+            $result = $callback($this);
+            $this->commit();
+
+            return $result;
+        } catch (\Throwable $e) {
+            try {
+                $this->rollBack();
+            } catch (\Throwable) {
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getDebugLog(): array
+    {
+        if (!$this->driver) {
+            return [];
+        }
+
+        return $this->driver->getDebugLog();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function clearDebugLog(): DatabaseInterface
+    {
+        if ($this->driver) {
+            $this->driver->clearDebugLog();
         }
 
         return $this;

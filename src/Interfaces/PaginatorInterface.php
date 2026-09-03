@@ -100,8 +100,10 @@ interface PaginatorInterface
      * Limit pagination number
      * < 1 | 2 ... 37 | 38 | 39 | 40 | 41 | 42 ... 82 | 83 >
      *
+     * Pages are ints, ellipsis gaps are '...' strings.
+     *
      * @param int $limit
-     * @return array
+     * @return array<int|string>
      */
     public function pageNumbers(int $limit = 15): array;
 

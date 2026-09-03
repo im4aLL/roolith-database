@@ -15,6 +15,7 @@ class PdoDriver implements DriverInterface
     protected $whereCondition;
     protected $whereBindings = [];
     protected $whereCounter = 0;
+    protected array $debugLog = [];
 
     public function __construct()
     {
@@ -144,50 +145,28 @@ class PdoDriver implements DriverInterface
             return;
         }
 
-        $isCli = PHP_SAPI === 'cli';
+        $this->debugLog[] = [
+            "query" => $string,
+            "bindings" => $bindings,
+        ];
+    }
 
-        if ($isCli) {
-            echo $string . PHP_EOL;
+    /**
+     * @inheritDoc
+     */
+    public function getDebugLog(): array
+    {
+        return $this->debugLog;
+    }
 
-            if ($bindings !== null) {
-                print_r($bindings);
-                echo PHP_EOL;
-            }
+    /**
+     * @inheritDoc
+     */
+    public function clearDebugLog(): DriverInterface
+    {
+        $this->debugLog = [];
 
-            return;
-        }
-
-        $style =
-            'background:#1e1e1e;' .
-            'color:#e6e6e6;' .
-            'font-family:monospace;' .
-            'font-size:13px;' .
-            'line-height:1.5;' .
-            'padding:12px 14px;' .
-            'border-radius:8px;' .
-            'border:1px solid #333;' .
-            'overflow-x:auto;' .
-            'white-space:pre-wrap;' .
-            'word-break:break-word;' .
-            'margin:8px 0;';
-
-        echo '<pre style="' .
-            $style .
-            '"><code>' .
-            htmlspecialchars($string, ENT_QUOTES, 'UTF-8') .
-            '</code></pre>';
-
-        if ($bindings !== null) {
-            echo '<pre style="' .
-                $style .
-                '"><code>' .
-                htmlspecialchars(
-                    print_r($bindings, true),
-                    ENT_QUOTES,
-                    'UTF-8',
-                ) .
-                '</code></pre>';
-        }
+        return $this;
     }
 
     /**
@@ -197,9 +176,7 @@ class PdoDriver implements DriverInterface
      */
     public function reset(): PdoDriver
     {
-        $this->whereCondition = "";
-        $this->whereBindings = [];
-        $this->whereCounter = 0;
+        $this->resetConditionalQueryString();
 
         return $this;
     }
@@ -269,9 +246,15 @@ class PdoDriver implements DriverInterface
     }
 
     /**
-     * @inheritDoc
+     * Build a single condition fragment without touching driver state.
+     *
+     * Pure: no $this mutation. Returns [fragment, bindings, nextCounter].
+     *
+     * @param array $array ['name'=>col, 'value'=>val, 'expression'=>'=', 'operator'=>'AND']
+     * @param int $counter placeholder counter start
+     * @return array{0:string,1:array,2:int}
      */
-    public function buildConditionQueryString($array): string
+    public function buildConditionFragment(array $array, int $counter = 0): array
     {
         $name = $array["name"] ?? null;
         $value = $array["value"] ?? null;
@@ -300,19 +283,14 @@ class PdoDriver implements DriverInterface
         }
 
         $column = $this->quoteIdentifier($name);
-
-        if (strlen($this->whereCondition) > 0) {
-            $this->whereCondition .= " " . $operator . " ";
-        }
+        $bindings = [];
 
         if ($value === null) {
             if (in_array($expression, ["!=", "<>"], true)) {
-                $this->whereCondition .= $column . " IS NOT NULL";
-            } else {
-                $this->whereCondition .= $column . " IS NULL";
+                return [$column . " IS NOT NULL", [], $counter];
             }
 
-            return $this->whereCondition;
+            return [$column . " IS NULL", [], $counter];
         }
 
         if (is_array($value)) {
@@ -326,20 +304,53 @@ class PdoDriver implements DriverInterface
 
             $placeholders = [];
             foreach (array_values($value) as $item) {
-                $placeholder = ":where" . $this->whereCounter++;
+                $placeholder = ":where" . $counter++;
                 $placeholders[] = $placeholder;
-                $this->whereBindings[$placeholder] = $item;
+                $bindings[$placeholder] = $item;
             }
 
-            $this->whereCondition .=
-                $column . " " . $expression . " (" . implode(", ", $placeholders) . ")";
-
-            return $this->whereCondition;
+            return [
+                $column . " " . $expression . " (" . implode(", ", $placeholders) . ")",
+                $bindings,
+                $counter,
+            ];
         }
 
-        $placeholder = ":where" . $this->whereCounter++;
-        $this->whereBindings[$placeholder] = $value;
-        $this->whereCondition .= $column . " " . $expression . " " . $placeholder;
+        $placeholder = ":where" . $counter++;
+        $bindings[$placeholder] = $value;
+
+        return [$column . " " . $expression . " " . $placeholder, $bindings, $counter];
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * Stateful accumulator kept for BC: appends pure fragment with
+     * AND/OR separator. Prefer buildConditionFragment() for pure use.
+     */
+    public function buildConditionQueryString($array): string
+    {
+        $operator = strtoupper(trim($array["operator"] ?? "AND"));
+
+        if (!in_array($operator, ["AND", "OR"], true)) {
+            throw new InvalidArgumentException("Invalid condition operator.");
+        }
+
+        [$fragment, $bindings, $next] = $this->buildConditionFragment(
+            $array,
+            $this->whereCounter,
+        );
+        $this->whereCounter = $next;
+
+        foreach ($bindings as $key => $val) {
+            $this->whereBindings[$key] = $val;
+        }
+
+        if (strlen($this->whereCondition) > 0) {
+            $this->whereCondition .= " " . $operator . " ";
+        }
+
+        $this->whereCondition .= $fragment;
 
         return $this->whereCondition;
     }
@@ -687,7 +698,7 @@ class PdoDriver implements DriverInterface
         $table,
         array $array = [],
         array $uniqueArray = [],
-        array|string $whereArray = [],
+        array $whereArray = [],
     ): bool {
         $result = false;
 
@@ -715,7 +726,7 @@ class PdoDriver implements DriverInterface
 
             $extendedCondition = [];
             $extIndex = 0;
-            foreach ((is_array($whereArray) ? $whereArray : []) as $whereKey => $whereVal) {
+            foreach ($whereArray as $whereKey => $whereVal) {
                 if (is_array($whereVal) || is_object($whereVal)) {
                     throw new InvalidArgumentException("Where value must be scalar or null.");
                 }
@@ -766,7 +777,7 @@ class PdoDriver implements DriverInterface
     public function update(
         string $table,
         array $array,
-        array|string $whereArray,
+        array $whereArray,
         array $uniqueArray = [],
     ) {
         $result = [
@@ -776,8 +787,8 @@ class PdoDriver implements DriverInterface
             ],
         ];
 
-        if (is_string($whereArray) && count($uniqueArray) > 0) {
-            throw new InvalidArgumentException("String where condition is not supported with unique check.");
+        if (count($whereArray) === 0) {
+            throw new InvalidArgumentException("Where condition is empty.");
         }
 
         $fields = [];
@@ -829,51 +840,50 @@ class PdoDriver implements DriverInterface
     }
 
     /**
-     * Prepare where array
+     * Prepare where array (bound only, never interpolated).
      *
-     * @param $whereArray string|array
+     * @param array $whereArray ['col' => value]
      * @return array [string $whereCond, array $bindings]
      */
-    protected function prepareWhereArray($whereArray): array
+    protected function prepareWhereArray(array $whereArray): array
     {
-        if (is_array($whereArray)) {
-            if (count($whereArray) === 0) {
-                throw new InvalidArgumentException("Where condition is empty.");
-            }
-
-            $affectedTo = [];
-            $bindings = [];
-            $index = 0;
-
-            foreach ($whereArray as $key => $val) {
-                $column = $this->quoteIdentifier($key);
-                if ($val === null) {
-                    $affectedTo[] = $column . " IS NULL";
-                    continue;
-                }
-                if (is_array($val)) {
-                    if (count($val) === 0) {
-                        throw new InvalidArgumentException("IN condition requires values.");
-                    }
-                    $placeholders = [];
-                    foreach (array_values($val) as $item) {
-                        $placeholder = ":w" . $index . "_" . count($placeholders);
-                        $placeholders[] = $placeholder;
-                        $bindings[$placeholder] = $item;
-                    }
-                    $affectedTo[] = $column . " IN (" . implode(", ", $placeholders) . ")";
-                    $index++;
-                    continue;
-                }
-                $placeholder = ":w" . $index++;
-                $affectedTo[] = $column . " = " . $placeholder;
-                $bindings[$placeholder] = $val;
-            }
-
-            return [" WHERE " . implode(" AND ", $affectedTo), $bindings];
+        if (count($whereArray) === 0) {
+            throw new InvalidArgumentException("Where condition is empty.");
         }
 
-        return [" WHERE " . $whereArray, []];
+        $affectedTo = [];
+        $bindings = [];
+        $index = 0;
+
+        foreach ($whereArray as $key => $val) {
+            $column = $this->quoteIdentifier($key);
+            if ($val === null) {
+                $affectedTo[] = $column . " IS NULL";
+                continue;
+            }
+            if (is_array($val)) {
+                if (count($val) === 0) {
+                    throw new InvalidArgumentException("IN condition requires values.");
+                }
+                $placeholders = [];
+                foreach (array_values($val) as $item) {
+                    $placeholder = ":w" . $index . "_" . count($placeholders);
+                    $placeholders[] = $placeholder;
+                    $bindings[$placeholder] = $item;
+                }
+                $affectedTo[] = $column . " IN (" . implode(", ", $placeholders) . ")";
+                $index++;
+                continue;
+            }
+            if (is_object($val)) {
+                throw new InvalidArgumentException("Where value must be scalar or null.");
+            }
+            $placeholder = ":w" . $index++;
+            $affectedTo[] = $column . " = " . $placeholder;
+            $bindings[$placeholder] = $val;
+        }
+
+        return [" WHERE " . implode(" AND ", $affectedTo), $bindings];
     }
 
     /**
@@ -900,11 +910,6 @@ class PdoDriver implements DriverInterface
                 $qry->execute($whereBindings ?: null);
 
                 $result["data"]["affectedRow"] = $qry->rowCount();
-                $result["debug"] = [
-                    "string" => $qryStr,
-                    "value" => $whereArray,
-                    "method" => null,
-                ];
             } catch (PDOException $PDOException) {
                 throw new Exception(
                     $PDOException->getMessage(),
@@ -925,6 +930,95 @@ class PdoDriver implements DriverInterface
         $this->debugMode = $mode;
 
         return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function inTransaction(): bool
+    {
+        if (!$this->pdo instanceof PDO) {
+            return false;
+        }
+
+        return $this->pdo->inTransaction();
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * Nesting is unsupported: throws when already in a transaction.
+     */
+    public function beginTransaction(): bool
+    {
+        $pdo = $this->requirePdo();
+
+        if ($pdo->inTransaction()) {
+            throw new Exception("Already in a transaction. Nesting is unsupported.");
+        }
+
+        try {
+            return $pdo->beginTransaction();
+        } catch (PDOException $PDOException) {
+            throw new Exception(
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
+            );
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function commit(): bool
+    {
+        $pdo = $this->requirePdo();
+
+        if (!$pdo->inTransaction()) {
+            throw new Exception("No active transaction to commit.");
+        }
+
+        try {
+            return $pdo->commit();
+        } catch (PDOException $PDOException) {
+            throw new Exception(
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
+            );
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function rollBack(): bool
+    {
+        $pdo = $this->requirePdo();
+
+        if (!$pdo->inTransaction()) {
+            throw new Exception("No active transaction to roll back.");
+        }
+
+        try {
+            return $pdo->rollBack();
+        } catch (PDOException $PDOException) {
+            throw new Exception(
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
+            );
+        }
+    }
+
+    protected function requirePdo(): PDO
+    {
+        if (!$this->pdo instanceof PDO) {
+            throw new Exception("Not connected. Call connect() first.");
+        }
+
+        return $this->pdo;
     }
 
     /**

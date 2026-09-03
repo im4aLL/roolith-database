@@ -108,6 +108,16 @@ class DatabaseTest extends TestCase
         $this->assertIsArray($result);
     }
 
+    public function testShouldSelectWithBoundRawCondition()
+    {
+        $result = $this->db->table('users')->select([
+            'condition' => 'WHERE id > :min',
+            'bindings' => [':min' => 0],
+        ])->get();
+
+        $this->assertCount(3, $result);
+    }
+
     public function testShouldSelectWithStringField()
     {
         $result = $this->db->table('users')->select([
@@ -253,5 +263,121 @@ class DatabaseTest extends TestCase
 
         $this->assertInstanceOf(PaginatorInterface::class, $result);
         $this->assertCount(2, $result->items());
+    }
+
+    public function testShouldStoreInjectionAttemptLiterally()
+    {
+        $evil = "' OR '1'='1";
+        $this->db->table('users')->insert(['name' => $evil, 'email' => 'evil@test.com']);
+
+        $result = $this->db->table('users')->where('name', $evil)->get();
+        $this->assertCount(1, $result);
+        $this->assertEquals($evil, $result[0]->name);
+
+        $all = $this->db->table('users')->query("SELECT * FROM users")->get();
+        $this->assertCount(4, $all);
+    }
+
+    public function testShouldThrowOnBadSql()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\Exception::class);
+        $this->db->query("SELECT * FROM no_such_table")->get();
+    }
+
+    public function testShouldSupportBoundWhereOperatorStyle()
+    {
+        $result = $this->db->table('users')->where('id', '>', 0)->get();
+        $this->assertCount(3, $result);
+
+        $result = $this->db->table('users')->where('id', 1)->get();
+        $this->assertCount(1, $result);
+    }
+
+    public function testShouldSupportOrderByLimitOffsetHelpers()
+    {
+        $result = $this->db->table('users')->orderBy('id', 'DESC')->limit(2)->get();
+        $this->assertCount(2, $result);
+        $this->assertGreaterThan($result[1]->id, $result[0]->id);
+
+        $result = $this->db->table('users')->orderBy('id', 'ASC')->limit(1)->offset(1)->get();
+        $this->assertCount(1, $result);
+        $this->assertEquals(2, $result[0]->id);
+    }
+
+    public function testShouldSupportOffsetWithoutLimit()
+    {
+        $result = $this->db->table('users')->orderBy('id', 'ASC')->offset(1)->get();
+        $this->assertCount(2, $result);
+        $this->assertEquals(2, $result[0]->id);
+    }
+
+    public function testShouldReturnEmptyPaginateWhenPerPageZero()
+    {
+        $result = $this->db->table('users')->paginate([
+            'perPage' => 0,
+            'total' => 3,
+            'pageUrl' => 'http://localhost/roolith-database/demo',
+            'currentPage' => 1,
+        ]);
+
+        $this->assertCount(0, $result->items());
+    }
+
+    public function testShouldNotEchoInDebugMode()
+    {
+        $this->db->clearDebugLog();
+        $this->db->debugMode(true);
+        $this->expectOutputString('');
+        $this->db->table('users')->query("SELECT * FROM users")->get();
+        $this->db->debugMode(false);
+
+        $log = $this->db->getDebugLog();
+        $this->assertNotEmpty($log);
+        $this->assertStringContainsString('SELECT', $log[0]['query']);
+    }
+
+    public function testShouldCommitAndRollbackTransactions()
+    {
+        $this->db->transaction(function ($db) {
+            $db->table('users')->insert(['name' => 'Tx Commit', 'email' => 'tx-commit@test.com']);
+        });
+
+        $result = $this->db->table('users')->where('email', 'tx-commit@test.com')->get();
+        $this->assertCount(1, $result);
+
+        try {
+            $this->db->transaction(function ($db) {
+                $db->table('users')->insert(['name' => 'Tx Rollback', 'email' => 'tx-rollback@test.com']);
+                throw new \RuntimeException('force rollback');
+            });
+        } catch (\RuntimeException) {
+        }
+
+        $result = $this->db->table('users')->where('email', 'tx-rollback@test.com')->get();
+        $this->assertCount(0, $result);
+    }
+
+    public function testShouldRejectNestedAndStrayTransactions()
+    {
+        $this->assertFalse($this->db->inTransaction());
+
+        $this->expectException(\Roolith\Store\Exceptions\Exception::class);
+        $this->db->commit();
+    }
+
+    public function testShouldRejectDoubleBegin()
+    {
+        $this->db->beginTransaction();
+        $this->assertTrue($this->db->inTransaction());
+
+        try {
+            $this->db->beginTransaction();
+            $this->fail('Nested begin should throw.');
+        } catch (\Roolith\Store\Exceptions\Exception) {
+        } finally {
+            $this->db->rollBack();
+        }
+
+        $this->assertFalse($this->db->inTransaction());
     }
 }

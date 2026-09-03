@@ -123,4 +123,76 @@ class PaginateTest extends TestCase
         $this->assertTrue(property_exists($detailObject, 'data'));
     }
 
+    public function testShouldBuildFromRequestWithoutSuperglobals()
+    {
+        $paginate = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/users?foo=1'],
+            ['page' => 3],
+        );
+
+        $this->assertEquals('/users', $paginate->firstPageUrl() ? parse_url($paginate->firstPageUrl(), PHP_URL_PATH) : '/users');
+        $this->assertEquals(3, $paginate->currentPage());
+        $this->assertEquals(10, $paginate->offset());
+    }
+
+    public function testShouldUseEllipsisStringAndCoverLastPage()
+    {
+        $numbers = $this->paginate->pageNumbers();
+        $this->assertContains('...', $numbers);
+        $this->assertNotContains('.', $numbers);
+
+        foreach ($numbers as $entry) {
+            $this->assertTrue(is_int($entry) || $entry === '...');
+        }
+
+        $last = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/'],
+            ['page' => 20],
+        );
+
+        $this->assertNotEmpty($last->pageNumbers());
+        $this->assertContains(20, $last->pageNumbers());
+    }
+
+    public function testShouldGuardPerPageZero()
+    {
+        $paginate = new Paginate([
+            'perPage' => 0,
+            'pageUrl' => 'http://example.com',
+            'total' => 100,
+        ]);
+
+        $this->assertEquals(0, $paginate->totalPage());
+        $this->assertEquals(0, $paginate->offset());
+    }
+
+    public function testShouldClampDetailsPastLastPage()
+    {
+        $paginate = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/users'],
+            ['page' => 100],
+        );
+
+        $details = $paginate->getDetails();
+        $this->assertEquals(0, $details->from);
+        $this->assertEquals(0, $details->to);
+    }
+
+    public function testShouldPreserveQueryParamsMinusPageParam()
+    {
+        $paginate = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/users?foo=1&page=2&bar=3'],
+            ['page' => 3],
+        );
+
+        $firstUrl = $paginate->firstPageUrl();
+        $this->assertStringContainsString('foo=1', $firstUrl);
+        $this->assertStringContainsString('bar=3', $firstUrl);
+        $this->assertStringContainsString('page=1', $firstUrl);
+        $this->assertEquals(1, substr_count($firstUrl, 'page='));
+    }
 }

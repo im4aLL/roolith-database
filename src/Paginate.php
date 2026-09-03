@@ -15,30 +15,91 @@ class Paginate implements PaginatorInterface
 
     public function __construct($param)
     {
-        $this->perPage = $param['perPage'] ?? 20;
+        $this->perPage = isset($param['perPage']) ? max(0, (int) $param['perPage']) : 20;
         $this->primaryColumn = $param['primaryColumn'] ?? 'id';
         $this->pageParam = $param['pageParam'] ?? 'page';
-        $this->total = $param['total'] ?? 0;
-        $this->currentPage = isset($param['currentPage']) ? (int) $param['currentPage'] : null;
-        $this->pageUrl = $param['pageUrl'] ?? $this->getCurrentPageUrl();
+        $this->total = isset($param['total']) ? max(0, (int) $param['total']) : 0;
+        $this->currentPage = isset($param['currentPage']) ? max(1, (int) $param['currentPage']) : 1;
+        $this->pageUrl = $param['pageUrl'] ?? '/';
     }
 
     /**
-     * Get current page url
+     * Decoupled factory that never touches superglobals.
      *
-     * @return string
+     * Pass $server (e.g. ['REQUEST_URI' => '/users?foo=1']) and
+     * $query (e.g. ['page' => 2]) explicitly for CLI/tests.
+     *
+     * Path plus existing query params (minus pageParam) are preserved.
+     * Pass a full pageUrl to fully control the base URL.
+     *
+     * @param array $params perPage/total/pageParam/primaryColumn + optional pageUrl/currentPage
+     * @param array $server server vars used only for pageUrl fallback
+     * @param array $query query vars used only for currentPage fallback
      */
-    protected function getCurrentPageUrl(): string
+    public static function fromRequest(array $params = [], array $server = [], array $query = []): self
     {
-        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        $pageParam = $params['pageParam'] ?? 'page';
+
+        if (!array_key_exists('pageUrl', $params)) {
+            $params['pageUrl'] = self::resolvePageUrl($server, (string) $pageParam);
+        }
+
+        if (!array_key_exists('currentPage', $params)) {
+            $params['currentPage'] = isset($query[$pageParam]) ? (int) $query[$pageParam] : 1;
+        }
+
+        return new self($params);
+    }
+
+    /**
+     * Explicit superglobal-backed factory for legacy web usage.
+     *
+     * Prefer fromRequest() with explicit $server/$query instead.
+     */
+    public static function fromGlobals(array $params = []): self
+    {
+        return self::fromRequest($params, $_SERVER, $_GET);
+    }
+
+    protected static function resolvePageUrl(array $server, string $pageParam = ""): string
+    {
+        $uri = $server['REQUEST_URI'] ?? '/';
 
         if (!is_string($uri) || $uri === '') {
             return '/';
         }
 
         $path = parse_url($uri, PHP_URL_PATH);
+        $base = is_string($path) && $path !== '' ? $path : '/';
 
-        return is_string($path) && $path !== '' ? $path : '/';
+        $queryString = parse_url($uri, PHP_URL_QUERY);
+        if (!is_string($queryString) || $queryString === '') {
+            return $base;
+        }
+
+        parse_str($queryString, $queryParams);
+
+        if ($pageParam !== "") {
+            unset($queryParams[$pageParam]);
+        }
+
+        if (count($queryParams) === 0) {
+            return $base;
+        }
+
+        return $base . "?" . http_build_query($queryParams);
+    }
+
+    /**
+     * Get current page url
+     *
+     * @deprecated Prefer Paginate::fromRequest() / fromGlobals(). Reads $_SERVER only for BC.
+     *
+     * @return string
+     */
+    protected function getCurrentPageUrl(): string
+    {
+        return self::resolvePageUrl($_SERVER);
     }
 
     /**
@@ -74,13 +135,7 @@ class Paginate implements PaginatorInterface
      */
     public function currentPage(): int
     {
-        if ($this->currentPage !== null) {
-            return $this->currentPage < 1 ? 1 : $this->currentPage;
-        }
-
-        $currentPageNumber = isset($_GET[$this->pageParam]) ? (int) $_GET[$this->pageParam] : 1;
-
-        return $currentPageNumber < 1 ? 1 : $currentPageNumber;
+        return $this->currentPage < 1 ? 1 : $this->currentPage;
     }
 
     public function setCurrentPage(int $page): PaginatorInterface
@@ -155,7 +210,7 @@ class Paginate implements PaginatorInterface
         $andMark = '&';
 
         $joinMark = $questionMark;
-        if ($this->stringContains($this->pageUrl, $questionMark)) {
+        if (str_contains($this->pageUrl, $questionMark)) {
             $joinMark = $andMark;
         }
 
@@ -195,7 +250,13 @@ class Paginate implements PaginatorInterface
     }
 
     /**
-     * @inheritDoc
+     * Limit pagination number
+     * < 1 | 2 ... 37 | 38 | 39 | 40 | 41 | 42 ... 82 | 83 >
+     *
+     * Ellipsis gaps are marked with '...' (string) while pages are ints.
+     *
+     * @param int $limit
+     * @return array<int|string>
      */
     public function pageNumbers(int $limit = 15): array
     {
@@ -217,44 +278,52 @@ class Paginate implements PaginatorInterface
      *
      * @param $currentPage
      * @param $totalPage
-     * @return array
+     * @return array<int|string>
      */
     private function getSmartPageNumbers($currentPage, $totalPage): array
     {
         $pageNumbers = [];
+
+        if ($totalPage <= 0) {
+            return [];
+        }
+
+        $currentPage = max(1, min((int) $currentPage, (int) $totalPage));
         $diff = 2;
 
         $firstChunk = [1, 2, 3];
         $lastChunk = [$totalPage - 2, $totalPage - 1, $totalPage];
 
-        if ($currentPage < $totalPage) {
-            $loopStartAt = $currentPage - $diff;
-            if ($loopStartAt < 1) {
-                $loopStartAt = 1;
-            }
+        $loopStartAt = $currentPage - $diff;
+        if ($loopStartAt < 1) {
+            $loopStartAt = 1;
+        }
 
-            $loopEndAt = $loopStartAt + ($diff * 2);
-            if ($loopEndAt > $totalPage) {
-                $loopEndAt = $totalPage;
-                $loopStartAt = $loopEndAt - ($diff * 2);
-            }
+        $loopEndAt = $loopStartAt + ($diff * 2);
+        if ($loopEndAt > $totalPage) {
+            $loopEndAt = $totalPage;
+            $loopStartAt = max(1, $loopEndAt - ($diff * 2));
+        }
 
-            if (!in_array($loopStartAt, $firstChunk)) {
-                foreach ($firstChunk as $i) {
-                    $pageNumbers[] = $i;
-                }
-
-                $pageNumbers[] = '.';
-            }
-
-            for ($i = $loopStartAt; $i <= $loopEndAt; $i++) {
+        if (!in_array($loopStartAt, $firstChunk)) {
+            foreach ($firstChunk as $i) {
                 $pageNumbers[] = $i;
             }
 
-            if (!in_array($loopEndAt, $lastChunk)) {
-                $pageNumbers[] = '.';
+            $pageNumbers[] = '...';
+        }
 
-                foreach ($lastChunk as $i) {
+        for ($i = $loopStartAt; $i <= $loopEndAt; $i++) {
+            if (!in_array($i, $pageNumbers, true)) {
+                $pageNumbers[] = $i;
+            }
+        }
+
+        if (!in_array($loopEndAt, $lastChunk)) {
+            $pageNumbers[] = '...';
+
+            foreach ($lastChunk as $i) {
+                if (!in_array($i, $pageNumbers, true)) {
                     $pageNumbers[] = $i;
                 }
             }
@@ -338,25 +407,12 @@ class Paginate implements PaginatorInterface
         $limit = $this->limit();
         $offset = $this->offset();
 
-        if ($total <= 0 || $limit <= 0) {
+        if ($total <= 0 || $limit <= 0 || $offset >= $total) {
             $from = 0;
             $to = 0;
         } else {
             $from = $offset + 1;
-
-            if ($from > $total) {
-                $from = $total + 1;
-            }
-
             $to = min($offset + $limit, $total);
-
-            if ($from > $to) {
-                $from = $to + 1;
-
-                if ($from > $total + 1) {
-                    $from = $total + 1;
-                }
-            }
         }
 
         return (object) [
@@ -384,6 +440,6 @@ class Paginate implements PaginatorInterface
      */
     protected function stringContains($string, $piece): bool
     {
-        return strpos($string, $piece) !== false;
+        return str_contains((string) $string, (string) $piece);
     }
 }

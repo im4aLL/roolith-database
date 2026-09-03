@@ -55,6 +55,15 @@ interface DriverInterface
     public function buildConditionQueryString($array): string;
 
     /**
+     * Pure fragment builder without touching driver state.
+     *
+     * @param array $array ['name'=>col, 'value'=>val, 'expression'=>'=', 'operator'=>'AND']
+     * @param int $counter placeholder counter start
+     * @return array{0:string,1:array,2:int} [fragment, bindings, nextCounter]
+     */
+    public function buildConditionFragment(array $array, int $counter = 0): array;
+
+    /**
      * Get bindings collected by buildConditionQueryString().
      *
      * @return array
@@ -105,11 +114,13 @@ interface DriverInterface
     );
 
     /**
-     * Update query
+     * Update query (bound only, array where).
+     *
+     * Raw string where is intentionally unsupported to prevent injection.
      *
      * @param $table string
      * @param $array array
-     * @param $whereArray array
+     * @param $whereArray array e.g. ['id' => 1]
      * @param array $uniqueArray
      * @return bool|array ['affectedRow' => 1, isDuplicate => 1]
      * @throws Exception
@@ -117,7 +128,7 @@ interface DriverInterface
     public function update(
         string $table,
         array $array,
-        array|string $whereArray,
+        array $whereArray,
         array $uniqueArray = [],
     );
 
@@ -138,6 +149,57 @@ interface DriverInterface
      * @return $this
      */
     public function setDebugMode(bool $mode): DriverInterface;
+
+    /**
+     * Whether a transaction is active.
+     *
+     * @return bool
+     */
+    public function inTransaction(): bool;
+
+    /**
+     * Begin transaction
+     *
+     * Nesting is unsupported: throws when already in a transaction.
+     *
+     * @return bool
+     * @throws Exception
+     */
+    public function beginTransaction(): bool;
+
+    /**
+     * Commit transaction
+     *
+     * Throws when no transaction is active.
+     *
+     * @return bool
+     * @throws Exception
+     */
+    public function commit(): bool;
+
+    /**
+     * Roll back transaction
+     *
+     * Throws when no transaction is active.
+     *
+     * @return bool
+     * @throws Exception
+     */
+    public function rollBack(): bool;
+
+    /**
+     * Get collected debug queries (no output side-effects).
+     *
+     * @return array<int, array{query:string, bindings:mixed}>
+     */
+    public function getDebugLog(): array;
+
+    /**
+     * Clear collected debug queries.
+     *
+     * @return $this
+     */
+    public function clearDebugLog(): DriverInterface;
 
     /**
      * Get query suffix

@@ -55,29 +55,35 @@ interface DatabaseInterface
     /**
      * Add where condition to an existing query
      *
+     * Supports both where($col, $val) / where($col, $val, $expr)
+     * and where($col, $op, $val).
+     *
      * @param $name
      * @param $value
-     * @param $expression string
+     * @param $expression string operator or bound value when $value is an operator
      * @return $this
      */
     public function where(
         $name,
         $value,
-        string $expression = "=",
+        $expression = "=",
     ): DatabaseInterface;
 
     /**
      * Add or where condition to an existing query
      *
+     * Supports both orWhere($col, $val) / orWhere($col, $val, $expr)
+     * and orWhere($col, $op, $val).
+     *
      * @param $name
      * @param $value
-     * @param $expression string
+     * @param $expression string operator or bound value when $value is an operator
      * @return $this
      */
     public function orWhere(
         $name,
         $value,
-        string $expression = "=",
+        $expression = "=",
     ): DatabaseInterface;
 
     /**
@@ -95,6 +101,34 @@ interface DatabaseInterface
      * @return array
      */
     public function pluck($nameArray): array;
+
+    /**
+     * Set ORDER BY for the next select/get.
+     *
+     * @param string $column
+     * @param string $direction ASC|DESC
+     * @return $this
+     */
+    public function orderBy(string $column, string $direction = "ASC"): DatabaseInterface;
+
+    /**
+     * Set LIMIT/OFFSET for the next select/get.
+     *
+     * Paginate() limit/offset takes precedence when used.
+     *
+     * @param int $limit
+     * @param int $offset
+     * @return $this
+     */
+    public function limit(int $limit, int $offset = 0): DatabaseInterface;
+
+    /**
+     * Set OFFSET for the next select/get.
+     *
+     * @param int $offset
+     * @return $this
+     */
+    public function offset(int $offset): DatabaseInterface;
 
     /**
      * Pagination
@@ -157,11 +191,15 @@ interface DatabaseInterface
     /**
      * Database select query
      *
+     * 'condition' is a trusted SQL literal escape hatch, never interpolate
+     * input into it. Pass variables via 'bindings' instead:
+     * ['condition' => 'WHERE id > :min', 'bindings' => [':min' => 0]].
+     *
      * @param $array
      * Example [
      * 'field' => ['name', 'username'],
-     * 'condition' => 'WHERE id > 0',
-     * 'bindings' => [':id' => 1],
+     * 'condition' => 'WHERE id > :min',
+     * 'bindings' => [':min' => 0],
      * 'limit' => '0, 10',
      * 'orderBy' => 'name',
      * 'groupBy' => 'name',
@@ -183,16 +221,18 @@ interface DatabaseInterface
     public function insert($array, array $uniqueArray = []): InsertResponse;
 
     /**
-     * Update query
+     * Update query (bound only, array where).
+     *
+     * Raw string where is intentionally unsupported to prevent injection.
      *
      * @param $array
-     * @param $whereArray
+     * @param array $whereArray e.g. ['id' => 1]
      * @param array $uniqueArray
      * @return UpdateResponse
      */
     public function update(
         $array,
-        $whereArray,
+        array $whereArray,
         array $uniqueArray = [],
     ): UpdateResponse;
 
@@ -211,4 +251,63 @@ interface DatabaseInterface
      * @return $this
      */
     public function debugMode(bool $mode = true): DatabaseInterface;
+
+    /**
+     * Whether a transaction is active.
+     *
+     * @return bool
+     */
+    public function inTransaction(): bool;
+
+    /**
+     * Begin transaction
+     *
+     * Nesting is unsupported: throws when already in a transaction.
+     *
+     * @return bool
+     */
+    public function beginTransaction(): bool;
+
+    /**
+     * Commit transaction
+     *
+     * Throws when no transaction is active.
+     *
+     * @return bool
+     */
+    public function commit(): bool;
+
+    /**
+     * Roll back transaction
+     *
+     * Throws when no transaction is active.
+     *
+     * @return bool
+     */
+    public function rollBack(): bool;
+
+    /**
+     * Run callback inside a transaction.
+     *
+     * Commits on success, rolls back and rethrows on failure.
+     * Nesting is unsupported.
+     *
+     * @param callable $callback function (DatabaseInterface $db): mixed
+     * @return mixed
+     */
+    public function transaction(callable $callback): mixed;
+
+    /**
+     * Get collected debug queries (no output side-effects).
+     *
+     * @return array<int, array{query:string, bindings:mixed}>
+     */
+    public function getDebugLog(): array;
+
+    /**
+     * Clear collected debug queries.
+     *
+     * @return $this
+     */
+    public function clearDebugLog(): DatabaseInterface;
 }
