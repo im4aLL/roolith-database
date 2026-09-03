@@ -205,13 +205,77 @@ $paginate = Paginate::fromRequest(
 ```
 
 ##### Transactions
+`transaction()` commits on success, rolls back and rethrows on failure.
+Nesting is unsupported.
+Use `inTransaction()` when a helper may run inside or outside a transaction.
 ```php
 $db->transaction(function ($db) {
     $db->table('users')->insert(['name' => 'A', 'email' => 'a@test.com']);
+    $db->table('orders')->insert(['user_email' => 'a@test.com', 'total' => 100]);
 });
-// or manual
+```
+Return a value from the callback.
+```php
+$userId = $db->transaction(function ($db) {
+    $result = $db->table('users')->insert(['name' => 'C', 'email' => 'c@test.com']);
+    return $result->insertedId();
+});
+```
+Throwing inside the callback triggers a rollback.
+```php
+try {
+    $db->transaction(function ($db) {
+        $db->table('users')->insert(['name' => 'B', 'email' => 'b@test.com']);
+        throw new RuntimeException('force rollback');
+    });
+} catch (RuntimeException $e) {
+    // row B was not saved
+}
+```
+Manual commit and rollback.
+```php
 $db->beginTransaction();
-$db->commit(); // $db->rollBack();
+try {
+    $db->table('users')->insert(['name' => 'D', 'email' => 'd@test.com']);
+    $db->table('users')->update(['name' => 'D2'], ['email' => 'd@test.com']);
+    $db->commit();
+} catch (Throwable $e) {
+    $db->rollBack();
+    throw $e;
+}
+```
+Reusable helper that is safe in both contexts.
+```php
+function createUser($db, array $data): void
+{
+    $run = function () use ($db, $data) {
+        $db->table('users')->insert($data);
+    };
+
+    if ($db->inTransaction()) {
+        $run();
+        return;
+    }
+
+    $db->transaction($run);
+}
+
+$db->transaction(function ($db) {
+    createUser($db, ['name' => 'E', 'email' => 'e@test.com']);
+    createUser($db, ['name' => 'F', 'email' => 'f@test.com']);
+});
+```
+These all throw.
+```php
+$db->commit(); // throws when no transaction is active
+$db->rollBack(); // throws when no transaction is active
+
+$db->beginTransaction();
+$db->beginTransaction(); // throws, nesting is unsupported
+
+$db->transaction(function ($db) {
+    $db->transaction(function ($db) {}); // throws, nesting is unsupported
+});
 ```
 
 ##### Bindings
