@@ -132,17 +132,19 @@ interface DatabaseInterface
      *
      * @param $string
      * @param $method
+     * @param $bindings named or positional bound values
      * @return $this
      */
-    public function query($string, $method = null): DatabaseInterface;
+    public function query($string, $method = null, $bindings = []): DatabaseInterface;
 
     /**
      * Database raw execute
      *
-     * @param string $string
+     * @param string $query
+     * @param array $bindings named or positional bound values
      * @return mixed
      */
-    public function execute(string $string): mixed;
+    public function execute(string $query, array $bindings = []): mixed;
 
     /**
      * Set table name
@@ -157,15 +159,17 @@ interface DatabaseInterface
      *
      * @param $array
      * Example [
-        'field' => ['name', 'username'],
-        'condition' => 'WHERE id > 0',
-        'limit' => '0, 10',
-        'orderBy' => 'name',
-        'groupBy' => 'name',
-     ]
+     * 'field' => ['name', 'username'],
+     * 'condition' => 'WHERE id > 0',
+     * 'bindings' => [':id' => 1],
+     * 'limit' => '0, 10',
+     * 'orderBy' => 'name',
+     * 'groupBy' => 'name',
+     * ]
+     * @param $bindings additional bound values for raw conditions
      * @return $this
      */
-    public function select($array): DatabaseInterface;
+    public function select($array, $bindings = []): DatabaseInterface;
 
     /**
      * Insert query

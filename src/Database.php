@@ -152,16 +152,20 @@ class Database implements DatabaseInterface
      */
     public function find($id): object|bool
     {
+        $this->driver->resetConditionalQueryString();
         $conditionQueryString = $this->driver->buildConditionQueryString([
             "name" => "id",
             "value" => $id,
         ]);
+        $bindings = $this->driver->getWhereBindings();
+        $this->driver->resetConditionalQueryString();
 
         return $this->select([
             "condition" => $this->driver->getQuerySuffix(
                 "",
                 $conditionQueryString,
             )["string"],
+            "bindings" => $bindings,
         ])->first();
     }
 
@@ -221,7 +225,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function query($string, $method = null): DatabaseInterface
+    public function query($string, $method = null, $bindings = []): DatabaseInterface
     {
         $this->reset();
 
@@ -229,7 +233,7 @@ class Database implements DatabaseInterface
             $whereCondition = "",
             $limit = 0,
             $offset = 0,
-        ) use ($string, $method) {
+        ) use ($string, $method, $bindings) {
             try {
                 $string = $this->driver->getQuerySuffix(
                     $string,
@@ -238,9 +242,14 @@ class Database implements DatabaseInterface
                     $offset,
                 )["string"];
 
+                $allBindings = array_merge(
+                    $bindings,
+                    $this->driver->getWhereBindings(),
+                );
+
                 $resultArray = $method
-                    ? $this->driver->query($string, $method)
-                    : $this->driver->query($string);
+                    ? $this->driver->query($string, $method, $allBindings)
+                    : $this->driver->query($string, null, $allBindings);
                 $this->result = $resultArray["data"];
                 $this->total = $resultArray["total"];
             } catch (Exceptions\Exception $e) {
@@ -255,12 +264,13 @@ class Database implements DatabaseInterface
      * Database raw execute
      *
      * @param string $query
+     * @param array $bindings named or positional bound values
      * @return mixed
      */
-    public function execute(string $query): mixed
+    public function execute(string $query, array $bindings = []): mixed
     {
         try {
-            return $this->driver->execute($query);
+            return $this->driver->execute($query, $bindings);
         } catch (Exceptions\Exception $e) {
             echo $e->getMessage();
         }
@@ -271,7 +281,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function select($array): DatabaseInterface
+    public function select($array, $bindings = []): DatabaseInterface
     {
         $this->reset();
 
@@ -279,7 +289,7 @@ class Database implements DatabaseInterface
             $whereCondition = "",
             $limit = 0,
             $offset = 0,
-        ) use ($array) {
+        ) use ($array, $bindings) {
             try {
                 $querySuffix = $this->driver->getQuerySuffix(
                     "",
@@ -298,6 +308,12 @@ class Database implements DatabaseInterface
                         $whereCondition,
                     )["string"];
                 }
+
+                $array["bindings"] = array_merge(
+                    $array["bindings"] ?? [],
+                    $bindings,
+                    $this->driver->getWhereBindings(),
+                );
 
                 $resultArray = $this->driver->select($this->tableName, $array);
                 $this->result = $resultArray["data"];

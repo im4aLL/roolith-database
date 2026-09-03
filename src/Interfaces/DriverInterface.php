@@ -27,20 +27,22 @@ interface DriverInterface
      *
      * @param $string
      * @param $method
+     * @param $bindings named or positional bound values
      * @return array
      * ['total' => 0, 'data' => [], 'debug' => ['string' => '', 'value' => [], 'method' => '']]
      * @throws Exception
      */
-    public function query($string, $method = null): array;
+    public function query($string, $method = null, $bindings = []): array;
 
     /**
      * Database raw execute
      *
      * @param $string
+     * @param array $bindings named or positional bound values
      * @return mixed
      * @throws Exception
      */
-    public function execute(string $string): mixed;
+    public function execute(string $string, array $bindings = []): mixed;
 
     /**
      * Build condition string
@@ -51,6 +53,13 @@ interface DriverInterface
      * @return string
      */
     public function buildConditionQueryString($array): string;
+
+    /**
+     * Get bindings collected by buildConditionQueryString().
+     *
+     * @return array
+     */
+    public function getWhereBindings(): array;
 
     /**
      * Reset conditional query string
@@ -67,14 +76,16 @@ interface DriverInterface
      * Example [
      * 'field' => ['name', 'username'],
      * 'condition' => 'WHERE id > 0',
+     * 'bindings' => [':id' => 1],
      * 'limit' => '0, 10',
      * 'orderBy' => 'name',
      * 'groupBy' => 'name',
      * ]
+     * @param $bindings additional bound values
      * @return iterable
      * @throws Exception
      */
-    public function select($table, $array): iterable;
+    public function select($table, $array, $bindings = []): iterable;
 
     /**
      * Insert query

@@ -5,6 +5,7 @@ use PDO;
 use PDOException;
 use Roolith\Store\Constants\DbConstant;
 use Roolith\Store\Exceptions\Exception;
+use Roolith\Store\Exceptions\InvalidArgumentException;
 use Roolith\Store\Interfaces\DriverInterface;
 
 class PdoDriver implements DriverInterface
@@ -12,10 +13,14 @@ class PdoDriver implements DriverInterface
     protected $pdo;
     protected $debugMode;
     protected $whereCondition;
+    protected $whereBindings = [];
+    protected $whereCounter = 0;
 
     public function __construct()
     {
         $this->whereCondition = "";
+        $this->whereBindings = [];
+        $this->whereCounter = 0;
         $this->debugMode = false;
     }
 
@@ -165,6 +170,8 @@ class PdoDriver implements DriverInterface
     public function reset(): PdoDriver
     {
         $this->whereCondition = "";
+        $this->whereBindings = [];
+        $this->whereCounter = 0;
 
         return $this;
     }
@@ -175,8 +182,12 @@ class PdoDriver implements DriverInterface
     public function query(
         $string,
         $method = DbConstant::DEFAULT_PDO_FETCH_METHOD,
+        $bindings = [],
     ): array {
         $this->reset();
+        if ($method === null) {
+            $method = DbConstant::DEFAULT_PDO_FETCH_METHOD;
+        }
 
         $result = [
             "total" => null,
@@ -184,10 +195,10 @@ class PdoDriver implements DriverInterface
         ];
 
         try {
-            $this->logDebug($string);
+            $this->logDebug($string, $bindings ?: null);
 
             $qry = $this->pdo->prepare($string);
-            $qry->execute();
+            $qry->execute($bindings ?: null);
             $qry->setFetchMode($method);
 
             if (str_starts_with(strtolower(trim($string)), "select")) {
@@ -212,13 +223,13 @@ class PdoDriver implements DriverInterface
      * @param string $string The SQL query to execute.
      * @return mixed
      */
-    public function execute(string $string): mixed
+    public function execute(string $string, array $bindings = []): mixed
     {
         try {
-            $this->logDebug($string);
+            $this->logDebug($string, $bindings ?: null);
 
             $qry = $this->pdo->prepare($string);
-            return $qry->execute();
+            return $qry->execute($bindings ?: null);
         } catch (PDOException $PDOException) {
             throw new Exception(
                 $PDOException->getMessage() .
@@ -233,24 +244,200 @@ class PdoDriver implements DriverInterface
      */
     public function buildConditionQueryString($array): string
     {
-        if (!isset($array["expression"])) {
-            $array["expression"] = "=";
+        $name = $array["name"] ?? null;
+        $value = $array["value"] ?? null;
+        $expression = strtoupper(trim($array["expression"] ?? "="));
+        $operator = strtoupper(trim($array["operator"] ?? "AND"));
+
+        if (!in_array($operator, ["AND", "OR"], true)) {
+            throw new InvalidArgumentException("Invalid condition operator.");
         }
+
+        $allowedExpressions = [
+            "=",
+            "!=",
+            "<>",
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "LIKE",
+            "NOT LIKE",
+            "IN",
+            "NOT IN",
+        ];
+        if (!in_array($expression, $allowedExpressions, true)) {
+            throw new InvalidArgumentException("Invalid condition expression.");
+        }
+
+        $column = $this->quoteIdentifier($name);
 
         if (strlen($this->whereCondition) > 0) {
-            $this->whereCondition .= " " . $array["operator"] . " ";
+            $this->whereCondition .= " " . $operator . " ";
         }
 
-        $this->whereCondition .=
-            "`" .
-            $array["name"] .
-            "` " .
-            $array["expression"] .
-            " '" .
-            $array["value"] .
-            "'";
+        if ($value === null) {
+            if (in_array($expression, ["!=", "<>"], true)) {
+                $this->whereCondition .= $column . " IS NOT NULL";
+            } else {
+                $this->whereCondition .= $column . " IS NULL";
+            }
+
+            return $this->whereCondition;
+        }
+
+        if (is_array($value)) {
+            if (!in_array($expression, ["IN", "NOT IN"], true)) {
+                $expression = "IN";
+            }
+
+            if (count($value) === 0) {
+                throw new InvalidArgumentException("IN condition requires values.");
+            }
+
+            $placeholders = [];
+            foreach (array_values($value) as $item) {
+                $placeholder = ":where" . $this->whereCounter++;
+                $placeholders[] = $placeholder;
+                $this->whereBindings[$placeholder] = $item;
+            }
+
+            $this->whereCondition .=
+                $column . " " . $expression . " (" . implode(", ", $placeholders) . ")";
+
+            return $this->whereCondition;
+        }
+
+        $placeholder = ":where" . $this->whereCounter++;
+        $this->whereBindings[$placeholder] = $value;
+        $this->whereCondition .= $column . " " . $expression . " " . $placeholder;
 
         return $this->whereCondition;
+    }
+
+    /**
+     * Get bindings collected by buildConditionQueryString().
+     *
+     * @return array
+     */
+    public function getWhereBindings(): array
+    {
+        return $this->whereBindings;
+    }
+
+    /**
+     * Quote a column or table identifier.
+     *
+     * Supports dot notation (table.column). Rejects anything outside
+     * [A-Za-z0-9_.] after stripping backticks.
+     *
+     * @param mixed $name
+     * @return string
+     */
+    protected function quoteIdentifier($name): string
+    {
+        if (!is_string($name) || $name === "") {
+            throw new InvalidArgumentException("Invalid identifier.");
+        }
+
+        $parts = explode(".", str_replace("`", "", $name));
+        foreach ($parts as $part) {
+            if (!preg_match("/^[A-Za-z0-9_]+$/", $part)) {
+                throw new InvalidArgumentException("Invalid identifier.");
+            }
+        }
+
+        return "`" . implode("`.`", $parts) . "`";
+    }
+
+    /**
+     * Quote a single field for the SELECT list.
+     *
+     * Allows *, table.*, identifiers and optional AS alias.
+     *
+     * @param mixed $field
+     * @return string
+     */
+    protected function quoteField($field): string
+    {
+        if (!is_string($field) || $field === "") {
+            throw new InvalidArgumentException("Invalid field.");
+        }
+
+        $alias = "";
+        if (preg_match("/\s+AS\s+/i", $field)) {
+            $split = preg_split("/\s+AS\s+/i", $field);
+            if (count($split) !== 2) {
+                throw new InvalidArgumentException("Invalid field.");
+            }
+            $field = trim($split[0]);
+            $alias = trim($split[1]);
+        }
+
+        if ($field === "*") {
+            $quoted = "*";
+        } elseif (substr($field, -2) === ".*") {
+            $quoted = $this->quoteIdentifier(substr($field, 0, -2)) . ".*";
+        } else {
+            $quoted = $this->quoteIdentifier($field);
+        }
+
+        if ($alias !== "") {
+            $quoted .= " AS " . $this->quoteIdentifier($alias);
+        }
+
+        return $quoted;
+    }
+
+    /**
+     * Sanitize ORDER BY / GROUP BY clause.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    protected function sanitizeOrderClause($value): string
+    {
+        if (!is_string($value) || trim($value) === "") {
+            throw new InvalidArgumentException("Invalid order clause.");
+        }
+
+        $items = [];
+        foreach (explode(",", $value) as $chunk) {
+            $chunk = trim($chunk);
+            if (!preg_match("/^([A-Za-z0-9_.]+)(\s+(ASC|DESC))?$/i", $chunk, $matches)) {
+                throw new InvalidArgumentException("Invalid order clause.");
+            }
+            $quoted = $this->quoteIdentifier($matches[1]);
+            if (!empty($matches[3])) {
+                $quoted .= " " . strtoupper($matches[3]);
+            }
+            $items[] = $quoted;
+        }
+
+        return implode(", ", $items);
+    }
+
+    /**
+     * Sanitize LIMIT clause. Allows "10" or "0, 10".
+     *
+     * @param mixed $limit
+     * @return string
+     */
+    protected function sanitizeLimit($limit): string
+    {
+        if (is_int($limit)) {
+            if ($limit < 0) {
+                throw new InvalidArgumentException("Invalid limit.");
+            }
+
+            return (string) $limit;
+        }
+
+        if (is_string($limit) && preg_match("/^\d+(\s*,\s*\d+)?$/", trim($limit))) {
+            return preg_replace("/\s+/", " ", trim($limit));
+        }
+
+        throw new InvalidArgumentException("Invalid limit.");
     }
 
     /**
@@ -259,6 +446,8 @@ class PdoDriver implements DriverInterface
     public function resetConditionalQueryString(): bool
     {
         $this->whereCondition = "";
+        $this->whereBindings = [];
+        $this->whereCounter = 0;
 
         return true;
     }
@@ -266,7 +455,7 @@ class PdoDriver implements DriverInterface
     /**
      * @inheritDoc
      */
-    public function select($table, $array): iterable
+    public function select($table, $array, $bindings = []): iterable
     {
         $result = [
             "total" => null,
@@ -275,12 +464,17 @@ class PdoDriver implements DriverInterface
 
         $fieldString = $this->buildFieldSelectString($array);
         $qryStr = $this->buildQueryString($table, $fieldString, $array);
+        $allBindings = array_merge(
+            $this->whereBindings,
+            $array["bindings"] ?? [],
+            $bindings,
+        );
 
         try {
-            $this->logDebug($qryStr);
+            $this->logDebug($qryStr, $allBindings ?: null);
 
             $qry = $this->pdo->prepare($qryStr);
-            $qry->execute();
+            $qry->execute($allBindings ?: null);
 
             if (isset($array["method"])) {
                 $qry->setFetchMode($array["method"]);
@@ -311,9 +505,16 @@ class PdoDriver implements DriverInterface
      */
     protected function buildFieldSelectString($array): string
     {
-        return isset($array["field"]) && count($array["field"]) > 0
-            ? implode(", ", $array["field"])
-            : "*";
+        if (!isset($array["field"]) || count($array["field"]) === 0) {
+            return "*";
+        }
+
+        $fields = [];
+        foreach ($array["field"] as $field) {
+            $fields[] = $this->quoteField($field);
+        }
+
+        return implode(", ", $fields);
     }
 
     /**
@@ -329,21 +530,21 @@ class PdoDriver implements DriverInterface
         $qryStr =
             "SELECT " .
             $fieldString .
-            " FROM `" .
-            $table .
-            "` " .
+            " FROM " .
+            $this->quoteIdentifier($table) .
+            " " .
             ($array["condition"] ?? "");
 
         if (isset($array["groupBy"])) {
-            $qryStr .= " GROUP BY " . $array["groupBy"];
+            $qryStr .= " GROUP BY " . $this->sanitizeOrderClause($array["groupBy"]);
         }
 
         if (isset($array["orderBy"])) {
-            $qryStr .= " ORDER BY " . $array["orderBy"];
+            $qryStr .= " ORDER BY " . $this->sanitizeOrderClause($array["orderBy"]);
         }
 
         if (isset($array["limit"])) {
-            $qryStr .= " LIMIT " . $array["limit"];
+            $qryStr .= " LIMIT " . $this->sanitizeLimit($array["limit"]);
         }
 
         return $qryStr;
@@ -362,16 +563,24 @@ class PdoDriver implements DriverInterface
             ],
         ];
 
-        $fields = [];
-        $executeArray = [];
-
-        foreach ($array as $key => $val) {
-            $fields[] = ":" . $key;
-            $executeArray[":" . $key] = $val;
+        if (count($array) === 0) {
+            throw new InvalidArgumentException("Insert data is empty.");
         }
 
-        $fieldString = implode(",", $fields);
-        $rawFieldsStr = implode(",", str_replace(":", "", $fields));
+        $columns = [];
+        $placeholders = [];
+        $executeArray = [];
+        $index = 0;
+
+        foreach ($array as $key => $val) {
+            $columns[] = $this->quoteIdentifier($key);
+            $placeholder = ":ins" . $index++;
+            $placeholders[] = $placeholder;
+            $executeArray[$placeholder] = $val;
+        }
+
+        $fieldString = implode(",", $placeholders);
+        $rawFieldsStr = implode(",", $columns);
 
         $result["data"]["isDuplicate"] = $this->isAlreadyExists(
             $table,
@@ -382,7 +591,7 @@ class PdoDriver implements DriverInterface
         if ($result["data"]["isDuplicate"] === false) {
             $qryStr =
                 "INSERT INTO " .
-                $table .
+                $this->quoteIdentifier($table) .
                 " (" .
                 $rawFieldsStr .
                 ") VALUES(" .
@@ -429,34 +638,53 @@ class PdoDriver implements DriverInterface
         $result = false;
 
         if (count($uniqueArray) > 0) {
+            $bindings = [];
             $condition = [];
+            $index = 0;
             foreach ($uniqueArray as $fieldName) {
-                $condition[] = $fieldName . " = '" . $array[$fieldName] . "' ";
+                if (!array_key_exists($fieldName, $array)) {
+                    throw new InvalidArgumentException("Unique field missing from data.");
+                }
+                $placeholder = ":uniq" . $index++;
+                $condition[] = $this->quoteIdentifier($fieldName) . " = " . $placeholder . " ";
+                $bindings[$placeholder] = $array[$fieldName];
             }
 
             $extendedCondition = [];
-            if (count($whereArray) > 0) {
-                foreach ($whereArray as $whereKey => $whereVal) {
-                    $extendedCondition[] =
-                        $whereKey . " != '" . $whereVal . "' ";
-                }
+            $extIndex = 0;
+            foreach ($whereArray as $whereKey => $whereVal) {
+                $placeholder = ":uniqw" . $extIndex++;
+                $extendedCondition[] =
+                    $this->quoteIdentifier($whereKey) . " != " . $placeholder . " ";
+                $bindings[$placeholder] = $whereVal;
             }
 
             $cQryStr =
                 "SELECT " .
-                $uniqueArray[0] .
+                $this->quoteIdentifier($uniqueArray[0]) .
                 " FROM " .
-                $table .
+                $this->quoteIdentifier($table) .
                 " WHERE " .
                 implode("AND ", $condition);
             if (count($extendedCondition) > 0) {
                 $cQryStr .= "AND " . implode("AND ", $extendedCondition);
             }
 
-            $cQry = $this->pdo->query($cQryStr);
+            try {
+                $cQry = $this->pdo->prepare($cQryStr);
+                $cQry->execute($bindings);
 
-            if ($cQry->rowCount() > 0) {
-                $result = true;
+                if ($cQry->rowCount() > 0) {
+                    $result = true;
+                }
+            } catch (PDOException $PDOException) {
+                throw new Exception(
+                    $PDOException->getMessage() .
+                        " Query: " .
+                        $cQryStr .
+                        " " .
+                        $PDOException->getTraceAsString(),
+                );
             }
         }
 
@@ -482,9 +710,11 @@ class PdoDriver implements DriverInterface
         $fields = [];
         $executeArray = [];
 
+        $setIndex = 0;
         foreach ($array as $key => $val) {
-            $fields[] = $key . " = :" . $key;
-            $executeArray[":" . $key] = $val;
+            $placeholder = ":set" . $setIndex++;
+            $fields[] = $this->quoteIdentifier($key) . " = " . $placeholder;
+            $executeArray[$placeholder] = $val;
         }
 
         $fieldsString = implode(", ", $fields);
@@ -496,9 +726,15 @@ class PdoDriver implements DriverInterface
         );
 
         if ($result["data"]["isDuplicate"] === false) {
-            $whereCond = $this->prepareWhereArray($whereArray);
+            [$whereCond, $whereBindings] = $this->prepareWhereArray($whereArray);
+            $executeArray = array_merge($executeArray, $whereBindings);
 
-            $qryStr = "UPDATE " . $table . " SET " . $fieldsString . $whereCond;
+            $qryStr =
+                "UPDATE " .
+                $this->quoteIdentifier($table) .
+                " SET " .
+                $fieldsString .
+                $whereCond;
 
             try {
                 $this->logDebug($qryStr, $executeArray);
@@ -525,23 +761,48 @@ class PdoDriver implements DriverInterface
      * Prepare where array
      *
      * @param $whereArray string|array
-     * @return string
+     * @return array [string $whereCond, array $bindings]
      */
-    protected function prepareWhereArray($whereArray): string
+    protected function prepareWhereArray($whereArray): array
     {
         if (is_array($whereArray)) {
-            $affectedTo = [];
-
-            foreach ($whereArray as $key => $val) {
-                $affectedTo[] = $key . " = '" . $val . "'";
+            if (count($whereArray) === 0) {
+                throw new InvalidArgumentException("Where condition is empty.");
             }
 
-            $whereCond = " WHERE " . implode(" AND ", $affectedTo);
-        } else {
-            $whereCond = " WHERE " . $whereArray;
+            $affectedTo = [];
+            $bindings = [];
+            $index = 0;
+
+            foreach ($whereArray as $key => $val) {
+                $column = $this->quoteIdentifier($key);
+                if ($val === null) {
+                    $affectedTo[] = $column . " IS NULL";
+                    continue;
+                }
+                if (is_array($val)) {
+                    if (count($val) === 0) {
+                        throw new InvalidArgumentException("IN condition requires values.");
+                    }
+                    $placeholders = [];
+                    foreach (array_values($val) as $item) {
+                        $placeholder = ":w" . $index . "_" . count($placeholders);
+                        $placeholders[] = $placeholder;
+                        $bindings[$placeholder] = $item;
+                    }
+                    $affectedTo[] = $column . " IN (" . implode(", ", $placeholders) . ")";
+                    $index++;
+                    continue;
+                }
+                $placeholder = ":w" . $index++;
+                $affectedTo[] = $column . " = " . $placeholder;
+                $bindings[$placeholder] = $val;
+            }
+
+            return [" WHERE " . implode(" AND ", $affectedTo), $bindings];
         }
 
-        return $whereCond;
+        return [" WHERE " . $whereArray, []];
     }
 
     /**
@@ -556,15 +817,16 @@ class PdoDriver implements DriverInterface
         ];
 
         if (count($whereArray) > 0) {
-            $whereCond = $this->prepareWhereArray($whereArray);
+            [$whereCond, $whereBindings] = $this->prepareWhereArray($whereArray);
 
-            $qryStr = "DELETE FROM " . $table . " " . $whereCond;
+            $qryStr =
+                "DELETE FROM " . $this->quoteIdentifier($table) . " " . $whereCond;
 
             try {
-                $this->logDebug($qryStr);
+                $this->logDebug($qryStr, $whereBindings ?: null);
 
                 $qry = $this->pdo->prepare($qryStr);
-                $qry->execute();
+                $qry->execute($whereBindings ?: null);
 
                 $result["data"]["affectedRow"] = $qry->rowCount();
                 $result["debug"] = [
@@ -614,6 +876,9 @@ class PdoDriver implements DriverInterface
             $string .= " WHERE " . $whereCondition;
             $resultArray["condition"] = "WHERE " . $whereCondition;
         }
+
+        $limit = (int) $limit;
+        $offset = (int) $offset;
 
         if ($limit > 0) {
             $string .= " LIMIT $limit";
