@@ -645,36 +645,53 @@ class PdoDriver implements DriverInterface
                 if (!array_key_exists($fieldName, $array)) {
                     throw new InvalidArgumentException("Unique field missing from data.");
                 }
+                $value = $array[$fieldName];
+                if (is_array($value) || is_object($value)) {
+                    throw new InvalidArgumentException("Unique field value must be scalar or null.");
+                }
+                $column = $this->quoteIdentifier($fieldName);
+                if ($value === null) {
+                    $condition[] = $column . " IS NULL";
+                    continue;
+                }
                 $placeholder = ":uniq" . $index++;
-                $condition[] = $this->quoteIdentifier($fieldName) . " = " . $placeholder . " ";
-                $bindings[$placeholder] = $array[$fieldName];
+                $condition[] = $column . " = " . $placeholder;
+                $bindings[$placeholder] = $value;
             }
 
             $extendedCondition = [];
             $extIndex = 0;
             foreach ($whereArray as $whereKey => $whereVal) {
+                if (is_array($whereVal) || is_object($whereVal)) {
+                    throw new InvalidArgumentException("Where value must be scalar or null.");
+                }
+                $column = $this->quoteIdentifier($whereKey);
+                if ($whereVal === null) {
+                    $extendedCondition[] = $column . " IS NOT NULL";
+                    continue;
+                }
                 $placeholder = ":uniqw" . $extIndex++;
-                $extendedCondition[] =
-                    $this->quoteIdentifier($whereKey) . " != " . $placeholder . " ";
+                $extendedCondition[] = $column . " != " . $placeholder;
                 $bindings[$placeholder] = $whereVal;
             }
 
             $cQryStr =
-                "SELECT " .
-                $this->quoteIdentifier($uniqueArray[0]) .
-                " FROM " .
+                "SELECT 1 FROM " .
                 $this->quoteIdentifier($table) .
                 " WHERE " .
-                implode("AND ", $condition);
+                implode(" AND ", $condition);
             if (count($extendedCondition) > 0) {
-                $cQryStr .= "AND " . implode("AND ", $extendedCondition);
+                $cQryStr .= " AND " . implode(" AND ", $extendedCondition);
             }
+            $cQryStr .= " LIMIT 1";
 
             try {
+                $this->logDebug($cQryStr, $bindings ?: null);
+
                 $cQry = $this->pdo->prepare($cQryStr);
                 $cQry->execute($bindings);
 
-                if ($cQry->rowCount() > 0) {
+                if ($cQry->fetchColumn() !== false) {
                     $result = true;
                 }
             } catch (PDOException $PDOException) {
