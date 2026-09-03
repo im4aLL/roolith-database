@@ -91,18 +91,6 @@ class Paginate implements PaginatorInterface
     }
 
     /**
-     * Get current page url
-     *
-     * @deprecated Prefer Paginate::fromRequest() / fromGlobals(). Reads $_SERVER only for BC.
-     *
-     * @return string
-     */
-    protected function getCurrentPageUrl(): string
-    {
-        return self::resolvePageUrl($_SERVER);
-    }
-
-    /**
      * @inheritDoc
      */
     public function count(): int
@@ -431,15 +419,4 @@ class Paginate implements PaginatorInterface
         ];
     }
 
-    /**
-     * If string contains a piece
-     *
-     * @param $string
-     * @param $piece
-     * @return bool
-     */
-    protected function stringContains($string, $piece): bool
-    {
-        return str_contains((string) $string, (string) $piece);
-    }
 }

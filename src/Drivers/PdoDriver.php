@@ -77,6 +77,10 @@ class PdoDriver implements DriverInterface
             }
         }
 
+        if (!in_array($type, ["mysql", "pgsql"], true)) {
+            throw new InvalidArgumentException("Unsupported database type: " . $type . ".");
+        }
+
         $defaultPorts = array_change_key_case(DbConstant::DEFAULT_PORT, CASE_LOWER);
         $port = $config["port"] ?? $defaultPorts[$type] ?? $defaultPorts[strtolower(DbConstant::DEFAULT_TYPE)];
         $host = $config["host"];
@@ -87,7 +91,6 @@ class PdoDriver implements DriverInterface
         if ($type === "pgsql") {
             $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
         } else {
-            $type = "mysql";
             $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
         }
 
@@ -789,6 +792,10 @@ class PdoDriver implements DriverInterface
 
         if (count($whereArray) === 0) {
             throw new InvalidArgumentException("Where condition is empty.");
+        }
+
+        if (count($array) === 0) {
+            throw new InvalidArgumentException("Update data is empty.");
         }
 
         $fields = [];

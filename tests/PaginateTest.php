@@ -195,4 +195,104 @@ class PaginateTest extends TestCase
         $this->assertStringContainsString('page=1', $firstUrl);
         $this->assertEquals(1, substr_count($firstUrl, 'page='));
     }
+
+    public function testShouldSupportSettersAndHasPages()
+    {
+        $paginate = new Paginate(['perPage' => 5, 'total' => 100, 'pageUrl' => 'http://example.com']);
+        $paginate->setCurrentPage(2);
+        $paginate->setTotal(50);
+
+        $this->assertEquals(2, $paginate->currentPage());
+        $this->assertEquals(50, $paginate->total());
+        $this->assertTrue($paginate->hasPages());
+
+        $paginate->setCurrentPage(10);
+        $this->assertFalse($paginate->hasPages());
+    }
+
+    public function testShouldReturnFalseItemsWhenEmpty()
+    {
+        $this->assertFalse($this->paginate->firstItem());
+        $this->assertFalse($this->paginate->lastItem());
+    }
+
+    public function testShouldBuildFromGlobals()
+    {
+        $_SERVER['REQUEST_URI'] = '/globals?x=1&page=5';
+        $_GET['page'] = 4;
+
+        $paginate = Paginate::fromGlobals(['perPage' => 5, 'total' => 100]);
+
+        $this->assertEquals(4, $paginate->currentPage());
+        $this->assertStringContainsString('x=1', $paginate->firstPageUrl());
+
+        unset($_SERVER['REQUEST_URI'], $_GET['page']);
+    }
+
+    public function testShouldHandlePageUrlWithExistingQuery()
+    {
+        $paginate = new Paginate(['perPage' => 5, 'total' => 100, 'pageUrl' => 'http://example.com?foo=1']);
+
+        $this->assertEquals('http://example.com?foo=1&page=1', $paginate->firstPageUrl());
+    }
+
+    public function testShouldListAllNumbersWhenTotalSmall()
+    {
+        $paginate = new Paginate(['perPage' => 5, 'total' => 20, 'pageUrl' => 'http://example.com']);
+
+        $this->assertEquals([1, 2, 3, 4], $paginate->pageNumbers());
+    }
+
+    public function testShouldClampNextAndPrevNumbers()
+    {
+        $last = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/'],
+            ['page' => 20],
+        );
+
+        $this->assertEquals(20, $last->getNextPageNumber());
+        $this->assertEquals(19, $last->getPrevPageNumber());
+
+        $first = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/'],
+            ['page' => 1],
+        );
+
+        $this->assertEquals(1, $first->getPrevPageNumber());
+        $this->assertEquals(2, $first->getNextPageNumber());
+        $this->assertEquals(1, $first->getFirstPageNumber());
+        $this->assertEquals(20, $first->getLastPageNumber());
+    }
+
+    public function testShouldSupportCustomPageParam()
+    {
+        $paginate = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100, 'pageParam' => 'p'],
+            ['REQUEST_URI' => '/users?foo=1&p=2'],
+            ['p' => 3],
+        );
+
+        $this->assertEquals(3, $paginate->currentPage());
+        $this->assertStringContainsString('p=1', $paginate->firstPageUrl());
+    }
+
+    public function testShouldReportNormalDetailsRange()
+    {
+        $paginate = Paginate::fromRequest(
+            ['perPage' => 5, 'total' => 100],
+            ['REQUEST_URI' => '/users'],
+            ['page' => 2],
+        );
+        $paginate->setItems([['id' => 6]]);
+
+        $details = $paginate->getDetails();
+
+        $this->assertEquals(6, $details->from);
+        $this->assertEquals(10, $details->to);
+        $this->assertEquals(100, $details->total);
+        $this->assertEquals(5, $details->perPage);
+        $this->assertEquals(2, $details->currentPage);
+    }
 }

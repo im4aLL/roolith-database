@@ -245,25 +245,63 @@ Notes: `getDetails()` returns `from=0,to=0` past the last page, `fromRequest()` 
 #### Development
 
 ```
-PHPUnit 9.3.7 by Sebastian Bergmann and contributors.
+PHPUnit 9.6.36 by Sebastian Bergmann and contributors.
 
 Database
  ✔ Should construct with config
  ✔ Should construct without config
  ✔ Should connect
+ ✔ Should throw on invalid config
  ✔ Should disconnect
+ ✔ Should require connection
  ✔ Should allow raw query
  ✔ Should return first result
  ✔ Should select
+ ✔ Should select with bound raw condition
+ ✔ Should select with string field
+ ✔ Should not overwrite caller condition
  ✔ Should insert
  ✔ Should insert if record not exists
  ✔ Should update
  ✔ Should update if record not exists
  ✔ Should delete
  ✔ Should get result based on where
+ ✔ Should not leak where state
  ✔ Should get result by find
  ✔ Should pluck by field name
  ✔ Should paginate
+ ✔ Should paginate with select and limit
+ ✔ Should store injection attempt literally
+ ✔ Should throw on bad sql
+ ✔ Should support bound where operator style
+ ✔ Should support order by limit offset helpers
+ ✔ Should support offset without limit
+ ✔ Should return empty paginate when per page zero
+ ✔ Should not echo in debug mode
+ ✔ Should commit and rollback transactions
+ ✔ Should reject nested and stray transactions
+ ✔ Should reject double begin
+ ✔ Should pluck with where
+ ✔ Should reject empty update data
+ ✔ Should reject empty update where
+ ✔ Should reject empty insert data
+ ✔ Should reject invalid order direction
+ ✔ Should reject negative limit and offset
+ ✔ Should return false first when empty
+ ✔ Should require table
+ ✔ Should reject empty config
+ ✔ Should reject unsupported type
+ ✔ Should support execute with bindings
+ ✔ Should reset state
+ ✔ Should return transaction value
+ ✔ Should clear debug log
+ ✔ Should support in condition via where
+ ✔ Should support field alias and wildcard
+ ✔ Should throw on invalid field
+ ✔ Should throw on invalid order clause
+ ✔ Should throw on invalid limit clause
+ ✔ Should return zero delete on empty where
+ ✔ Should assert response values
 
 Paginate
  ✔ Should get count
@@ -281,8 +319,51 @@ Paginate
  ✔ Should get limit
  ✔ Should get offset
  ✔ Should get details
+ ✔ Should build from request without superglobals
+ ✔ Should use ellipsis string and cover last page
+ ✔ Should guard per page zero
+ ✔ Should clamp details past last page
+ ✔ Should preserve query params minus page param
+ ✔ Should support setters and has pages
+ ✔ Should return false items when empty
+ ✔ Should build from globals
+ ✔ Should handle page url with existing query
+ ✔ Should list all numbers when total small
+ ✔ Should clamp next and prev numbers
+ ✔ Should support custom page param
+ ✔ Should report normal details range
 
-Time: 00:00.144, Memory: 6.00 MB
+Pdo Driver
+ ✔ Should connect via string dsn
+ ✔ Should reject invalid config type
+ ✔ Should reject missing sqlite name
+ ✔ Should reject missing keys
+ ✔ Should reject unsupported type
+ ✔ Should return false disconnect when not connected
+ ✔ Should reset and clear where state
+ ✔ Should build null fragments
+ ✔ Should build in fragment
+ ✔ Should reject empty in fragment
+ ✔ Should reject invalid expression and operator
+ ✔ Should reject invalid identifier
+ ✔ Should accumulate or condition
+ ✔ Should reject invalid condition operator
+ ✔ Should throw on invalid select clauses
+ ✔ Should support select variants and query suffix
+ ✔ Should throw on bad query and execute
+ ✔ Should support query with bindings
+ ✔ Should reject unique missing and bad values
+ ✔ Should reject empty in where array
+ ✔ Should support null where match
+ ✔ Should track debug log
+ ✔ Should reject stray rollback
 
-OK (31 tests, 41 assertions)
+Responses
+ ✔ Should handle insert defaults
+ ✔ Should handle insert success
+ ✔ Should handle insert duplicate
+ ✔ Should handle update defaults and success
+ ✔ Should handle delete defaults and success
+
+OK (110 tests, 214 assertions)
 ```

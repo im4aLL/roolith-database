@@ -380,4 +380,188 @@ class DatabaseTest extends TestCase
 
         $this->assertFalse($this->db->inTransaction());
     }
+
+    public function testShouldPluckWithWhere()
+    {
+        $result = $this->db->table('users')->where('name', 'John Doe')->pluck(['name']);
+
+        $this->assertIsArray($result);
+        $this->assertCount(1, $result);
+        $this->assertEquals('John Doe', $result[0]->name);
+    }
+
+    public function testShouldRejectEmptyUpdateData()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->update([], ['id' => 1]);
+    }
+
+    public function testShouldRejectEmptyUpdateWhere()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->update(['name' => 'X'], []);
+    }
+
+    public function testShouldRejectEmptyInsertData()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->insert([]);
+    }
+
+    public function testShouldRejectInvalidOrderDirection()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->orderBy('id', 'SIDEWAYS')->get();
+    }
+
+    public function testShouldRejectNegativeLimitAndOffset()
+    {
+        try {
+            $this->db->table('users')->limit(-1)->get();
+            $this->fail('Negative limit should throw.');
+        } catch (\Roolith\Store\Exceptions\InvalidArgumentException) {
+        }
+
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->offset(-1)->get();
+    }
+
+    public function testShouldReturnFalseFirstWhenEmpty()
+    {
+        $result = $this->db->table('users')->where('id', 999999)->first();
+
+        $this->assertFalse($result);
+    }
+
+    public function testShouldRequireTable()
+    {
+        $db = new Database($this->getConfig());
+
+        $this->expectException(\Roolith\Store\Exceptions\Exception::class);
+        $db->find(1);
+    }
+
+    public function testShouldRejectEmptyConfig()
+    {
+        $db = new Database();
+
+        $this->expectException(\Roolith\Store\Exceptions\Exception::class);
+        $db->connect([]);
+    }
+
+    public function testShouldRejectUnsupportedType()
+    {
+        $db = new Database();
+
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $db->connect(['type' => 'mysqll', 'host' => 'h', 'name' => 'n', 'user' => 'u', 'pass' => 'p']);
+    }
+
+    public function testShouldSupportExecuteWithBindings()
+    {
+        $ok = $this->db->execute("INSERT INTO users (name, email) VALUES (:name, :email)", [
+            ':name' => 'Bound Guy',
+            ':email' => 'bound@test.com',
+        ]);
+
+        $this->assertTrue((bool) $ok);
+
+        $result = $this->db->table('users')->where('email', 'bound@test.com')->get();
+        $this->assertCount(1, $result);
+    }
+
+    public function testShouldResetState()
+    {
+        $this->db->table('users')->where('id', 1);
+        $this->db->reset();
+
+        $result = $this->db->table('users')->query("SELECT * FROM users")->get();
+        $this->assertCount(3, $result);
+    }
+
+    public function testShouldReturnTransactionValue()
+    {
+        $value = $this->db->transaction(function () {
+            return 42;
+        });
+
+        $this->assertEquals(42, $value);
+    }
+
+    public function testShouldClearDebugLog()
+    {
+        $this->db->debugMode(true);
+        $this->db->table('users')->query("SELECT * FROM users")->get();
+        $this->assertNotEmpty($this->db->getDebugLog());
+
+        $this->db->clearDebugLog();
+        $this->assertSame([], $this->db->getDebugLog());
+        $this->db->debugMode(false);
+    }
+
+    public function testShouldSupportInConditionViaWhere()
+    {
+        $result = $this->db->table('users')->where('id', [1, 2])->get();
+
+        $this->assertCount(2, $result);
+    }
+
+    public function testShouldSupportFieldAliasAndWildcard()
+    {
+        $aliased = $this->db->table('users')->select(['field' => ['name AS username']])->get();
+        $this->assertEquals($aliased[0]->username, $aliased[0]->username);
+
+        $wild = $this->db->table('users')->select(['field' => ['users.*']])->get();
+        $this->assertIsObject($wild[0]);
+    }
+
+    public function testShouldThrowOnInvalidField()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->select(['field' => ['bad-col!']])->get();
+    }
+
+    public function testShouldThrowOnInvalidOrderClause()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->select(['orderBy' => 'id; DROP'])->get();
+    }
+
+    public function testShouldThrowOnInvalidLimitClause()
+    {
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $this->db->table('users')->select(['limit' => 'DROP'])->get();
+    }
+
+    public function testShouldReturnZeroDeleteOnEmptyWhere()
+    {
+        $result = $this->db->table('users')->delete([]);
+
+        $this->assertSame(0, $result->affectedRow());
+        $this->assertFalse($result->success());
+    }
+
+    public function testShouldAssertResponseValues()
+    {
+        $inserted = $this->db->table('users')->insert(['name' => 'Vals', 'email' => 'vals@test.com']);
+        $this->assertGreaterThan(0, $inserted->insertedId());
+        $this->assertGreaterThan(0, $inserted->affectedRow());
+        $this->assertFalse($inserted->isDuplicate());
+        $this->assertTrue($inserted->success());
+
+        $dup = $this->db->table('users')->insert(
+            ['name' => 'Vals', 'email' => 'vals@test.com'],
+            ['email']
+        );
+        $this->assertTrue($dup->isDuplicate());
+        $this->assertFalse($dup->success());
+
+        $updated = $this->db->table('users')->update(['name' => 'Vals2'], ['id' => $inserted->insertedId()]);
+        $this->assertFalse($updated->isDuplicate());
+        $this->assertTrue($updated->success());
+
+        $deleted = $this->db->table('users')->delete(['id' => $inserted->insertedId()]);
+        $this->assertSame(1, $deleted->affectedRow());
+        $this->assertTrue($deleted->success());
+    }
 }

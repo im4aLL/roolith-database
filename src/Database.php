@@ -319,16 +319,9 @@ class Database implements DatabaseInterface
      */
     public function pluck($nameArray): array
     {
-        $opt = [
+        return $this->select([
             "field" => $nameArray,
-        ];
-
-        if ($this->whereCondition) {
-            $opt["condition"] = $this->whereCondition;
-            $opt["bindings"] = $this->requireDriver()->getWhereBindings();
-        }
-
-        return $this->select($opt)->get();
+        ])->get();
     }
 
     /**
