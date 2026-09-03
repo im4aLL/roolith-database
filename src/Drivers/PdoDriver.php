@@ -96,6 +96,68 @@ class PdoDriver implements DriverInterface
     }
 
     /**
+     * Output debug query in monospaced font.
+     *
+     * Uses <pre><code> with monospace styling in browser context,
+     * plain text in CLI context.
+     *
+     * @param string $string SQL query string.
+     * @param mixed $bindings Optional bound values to dump.
+     * @return void
+     */
+    protected function logDebug(string $string, $bindings = null): void
+    {
+        if (!$this->debugMode) {
+            return;
+        }
+
+        $isCli = PHP_SAPI === 'cli';
+
+        if ($isCli) {
+            echo $string . PHP_EOL;
+
+            if ($bindings !== null) {
+                print_r($bindings);
+                echo PHP_EOL;
+            }
+
+            return;
+        }
+
+        $style =
+            'background:#1e1e1e;' .
+            'color:#e6e6e6;' .
+            'font-family:monospace;' .
+            'font-size:13px;' .
+            'line-height:1.5;' .
+            'padding:12px 14px;' .
+            'border-radius:8px;' .
+            'border:1px solid #333;' .
+            'overflow-x:auto;' .
+            'white-space:pre-wrap;' .
+            'word-break:break-word;' .
+            'margin:8px 0;';
+
+        echo '<pre style="' .
+            $style .
+            '"><code>' .
+            htmlspecialchars($string, ENT_QUOTES, 'UTF-8') .
+            '</code></pre>';
+
+        if ($bindings !== null) {
+            echo '<pre style="' .
+                $style .
+                '"><code>' .
+                htmlspecialchars(
+                    print_r($bindings, true),
+                    ENT_QUOTES,
+                    'UTF-8',
+                ) .
+                '</code></pre>';
+        }
+    }
+
+    /**
      * Reset
      *
      * @return $this
@@ -122,10 +184,7 @@ class PdoDriver implements DriverInterface
         ];
 
         try {
-            if ($this->debugMode) {
-                echo $string;
-                echo PHP_EOL;
-            }
+            $this->logDebug($string);
 
             $qry = $this->pdo->prepare($string);
             $qry->execute();
@@ -156,10 +215,7 @@ class PdoDriver implements DriverInterface
     public function execute(string $string): mixed
     {
         try {
-            if ($this->debugMode) {
-                echo $string;
-                echo PHP_EOL;
-            }
+            $this->logDebug($string);
 
             $qry = $this->pdo->prepare($string);
             return $qry->execute();
@@ -221,10 +277,7 @@ class PdoDriver implements DriverInterface
         $qryStr = $this->buildQueryString($table, $fieldString, $array);
 
         try {
-            if ($this->debugMode) {
-                echo $qryStr;
-                echo PHP_EOL;
-            }
+            $this->logDebug($qryStr);
 
             $qry = $this->pdo->prepare($qryStr);
             $qry->execute();
@@ -337,12 +390,7 @@ class PdoDriver implements DriverInterface
                 ")";
 
             try {
-                if ($this->debugMode) {
-                    echo $qryStr;
-                    echo PHP_EOL;
-                    print_r($executeArray);
-                    echo PHP_EOL;
-                }
+                $this->logDebug($qryStr, $executeArray);
 
                 $qry = $this->pdo->prepare($qryStr);
                 $qry->execute($executeArray);
@@ -453,12 +501,7 @@ class PdoDriver implements DriverInterface
             $qryStr = "UPDATE " . $table . " SET " . $fieldsString . $whereCond;
 
             try {
-                if ($this->debugMode) {
-                    echo $qryStr;
-                    echo PHP_EOL;
-                    print_r($executeArray);
-                    echo PHP_EOL;
-                }
+                $this->logDebug($qryStr, $executeArray);
 
                 $qry = $this->pdo->prepare($qryStr);
                 $qry->execute($executeArray);
@@ -518,10 +561,7 @@ class PdoDriver implements DriverInterface
             $qryStr = "DELETE FROM " . $table . " " . $whereCond;
 
             try {
-                if ($this->debugMode) {
-                    echo $qryStr;
-                    echo PHP_EOL;
-                }
+                $this->logDebug($qryStr);
 
                 $qry = $this->pdo->prepare($qryStr);
                 $qry->execute();

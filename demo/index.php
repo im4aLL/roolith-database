@@ -18,18 +18,18 @@ $db->connect([
     'pass' => '',
 ]);
 
-$result = $db->query(" SELECT * FROM users")->get();
-dd($result);
+// $result = $db->query("SELECT * FROM users")->get();
+// dd($result);
 
-//$result = $db->debugMode()->table('users')->select([
+// $result = $db->debugMode()->table('users')->select([
 //    'field' => ['name', 'email'],
 //    'condition' => 'WHERE id > 0',
 //    'limit' => '0, 10',
 //    'orderBy' => 'name',
 //    'groupBy' => 'name',
-//])->first();
-//
-//dd($result);
+// ])->first();
+
+// dd($result);
 
 //$result = $db->table('users')->insert(
 //    ['name' => 'Brannon Bruen', 'email' => 'bschmeler@pacocha.net'],
@@ -48,8 +48,8 @@ dd($result);
 //$result = $db->table('users')->delete(['id' => 3]);
 //dd($result);
 
-//$result = $db->debugMode()->table('users')->where('name', '%Hadi%', 'LIKE')->get();
-//dd($result);
+$result = $db->debugMode()->table('users')->where('name', '%Hadi%', 'LIKE')->get();
+dd($result);
 
 //$result = $db->debugMode()->table('users')->find(1);
 //dd($result);
