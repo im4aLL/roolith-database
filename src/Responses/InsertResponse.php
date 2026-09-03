@@ -14,7 +14,7 @@ class InsertResponse implements InsertResponseInterface
     {
         $this->affectedRow = $result['affectedRow'] ?? 0;
         $this->insertedId = $result['insertedId'] ?? 0;
-        $this->isDuplicate = $result['isDuplicate'] ?? 0;
+        $this->isDuplicate = $result['isDuplicate'] ?? false;
     }
 
     /**

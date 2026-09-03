@@ -21,15 +21,15 @@ $db->connect([
 // $result = $db->query("SELECT * FROM users")->get();
 // dd($result);
 
-$result = $db->debugMode()->table('users')->select([
-   'field' => ['name', 'email'],
-   'condition' => 'WHERE id > 0',
-   'limit' => '0, 10',
-   'orderBy' => 'name',
-   'groupBy' => 'name',
-])->first();
+// $result = $db->debugMode()->table('users')->select([
+//    'field' => ['name', 'email'],
+//    'condition' => 'WHERE id > 0',
+//    'limit' => '0, 10',
+//    'orderBy' => 'name',
+//    'groupBy' => 'name',
+// ])->first();
 
-dd($result);
+// dd($result);
 
 //$result = $db->table('users')->insert(
 //    ['name' => 'Brannon Bruen', 'email' => 'bschmeler@pacocha.net'],
@@ -37,13 +37,13 @@ dd($result);
 //);
 //dd($result);
 
-//$result = $db->table('users')->update(
-//    ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
-//    ['id' => 1],
-//    ['name']
-//);
-//
-//dd($result->success() ? 'true' : 'false');
+$result = $db->table('users')->update(
+   ['name' => 'Habib Hadi', 'email' => 'john@email.com'],
+   ['id' => 1],
+   ['name']
+);
+
+dd($result->success() ? 'true' : 'false');
 
 //$result = $db->table('users')->delete(['id' => 3]);
 //dd($result);

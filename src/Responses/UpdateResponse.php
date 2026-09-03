@@ -11,8 +11,8 @@ class UpdateResponse implements UpdateResponseInterface
 
     public function __construct($result = [])
     {
-        $this->affectedRow = $result['affectedRow'] ?? null;
-        $this->isDuplicate = $result['isDuplicate'] ?? null;
+        $this->affectedRow = $result['affectedRow'] ?? 0;
+        $this->isDuplicate = $result['isDuplicate'] ?? false;
     }
 
     /**
@@ -36,6 +36,6 @@ class UpdateResponse implements UpdateResponseInterface
      */
     public function success(): bool
     {
-        return !$this->isDuplicate() && $this->affectedRow() !== null;
+        return !$this->isDuplicate();
     }
 }

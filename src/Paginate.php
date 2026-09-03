@@ -10,7 +10,7 @@ class Paginate implements PaginatorInterface
     protected $primaryColumn;
     protected $pageParam;
     protected $total;
-    protected $items;
+    protected $items = [];
 
     public function __construct($param)
     {
@@ -52,7 +52,11 @@ class Paginate implements PaginatorInterface
      */
     public function totalPage(): int
     {
-        return ceil($this->total() / $this->count());
+        if ($this->count() <= 0) {
+            return 0;
+        }
+
+        return (int) ceil($this->total() / $this->count());
     }
 
     /**
@@ -104,7 +108,7 @@ class Paginate implements PaginatorInterface
      */
     public function items(): array
     {
-        return $this->items;
+        return $this->items ?? [];
     }
 
     /**

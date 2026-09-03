@@ -19,7 +19,7 @@ class Database implements DatabaseInterface
     protected Closure|null $queryFn = null;
     protected string $whereCondition = "";
 
-    public function __construct($config = [], DriverInterface $driver = null)
+    public function __construct($config = [], ?DriverInterface $driver = null)
     {
         $this->whereCondition = "";
         $this->driver = $driver;
@@ -76,7 +76,7 @@ class Database implements DatabaseInterface
                 $this->select([])->get();
             }
 
-            return $this->result;
+            return $this->result ?? [];
         } finally {
             $this->queryFn = null;
             $this->whereCondition = "";
@@ -89,10 +89,10 @@ class Database implements DatabaseInterface
      */
     public function first(): object|bool
     {
-        $this->get();
+        $result = $this->get();
 
-        if ($this->total > 0) {
-            return $this->result[0];
+        if ($this->total > 0 && count($result) > 0) {
+            return $result[0];
         }
 
         return false;
@@ -201,7 +201,7 @@ class Database implements DatabaseInterface
                 $this->select([])->get();
             }
 
-            $paginate->setItems($this->result);
+            $paginate->setItems($this->result ?? []);
 
             return $paginate;
         } finally {
