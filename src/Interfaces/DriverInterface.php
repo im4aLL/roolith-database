@@ -117,7 +117,7 @@ interface DriverInterface
     public function update(
         string $table,
         array $array,
-        array $whereArray,
+        array|string $whereArray,
         array $uniqueArray = [],
     );
 

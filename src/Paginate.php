@@ -11,14 +11,16 @@ class Paginate implements PaginatorInterface
     protected $pageParam;
     protected $total;
     protected $items = [];
+    protected $currentPage;
 
     public function __construct($param)
     {
         $this->perPage = $param['perPage'] ?? 20;
-        $this->pageUrl = $param['pageUrl'] ?? $this->getCurrentPageUrl();
         $this->primaryColumn = $param['primaryColumn'] ?? 'id';
         $this->pageParam = $param['pageParam'] ?? 'page';
         $this->total = $param['total'] ?? 0;
+        $this->currentPage = isset($param['currentPage']) ? (int) $param['currentPage'] : null;
+        $this->pageUrl = $param['pageUrl'] ?? $this->getCurrentPageUrl();
     }
 
     /**
@@ -28,7 +30,15 @@ class Paginate implements PaginatorInterface
      */
     protected function getCurrentPageUrl(): string
     {
-        return parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+
+        if (!is_string($uri) || $uri === '') {
+            return '/';
+        }
+
+        $path = parse_url($uri, PHP_URL_PATH);
+
+        return is_string($path) && $path !== '' ? $path : '/';
     }
 
     /**
@@ -64,9 +74,27 @@ class Paginate implements PaginatorInterface
      */
     public function currentPage(): int
     {
-        $currentPageNumber = isset($_GET[$this->pageParam]) ? intval($_GET[$this->pageParam]) : 1;
+        if ($this->currentPage !== null) {
+            return $this->currentPage < 1 ? 1 : $this->currentPage;
+        }
 
-        return $currentPageNumber === 0 ? 1 : $currentPageNumber;
+        $currentPageNumber = isset($_GET[$this->pageParam]) ? (int) $_GET[$this->pageParam] : 1;
+
+        return $currentPageNumber < 1 ? 1 : $currentPageNumber;
+    }
+
+    public function setCurrentPage(int $page): PaginatorInterface
+    {
+        $this->currentPage = $page < 1 ? 1 : $page;
+
+        return $this;
+    }
+
+    public function setTotal(int $total): PaginatorInterface
+    {
+        $this->total = $total < 0 ? 0 : $total;
+
+        return $this;
     }
 
     /**
@@ -248,7 +276,13 @@ class Paginate implements PaginatorInterface
      */
     public function offset(): int
     {
-        return $this->limit() * $this->currentPage() - $this->limit();
+        if ($this->limit() <= 0) {
+            return 0;
+        }
+
+        $offset = $this->limit() * $this->currentPage() - $this->limit();
+
+        return $offset < 0 ? 0 : $offset;
     }
 
     /**
@@ -300,6 +334,31 @@ class Paginate implements PaginatorInterface
      */
     public function getDetails(): object
     {
+        $total = $this->total();
+        $limit = $this->limit();
+        $offset = $this->offset();
+
+        if ($total <= 0 || $limit <= 0) {
+            $from = 0;
+            $to = 0;
+        } else {
+            $from = $offset + 1;
+
+            if ($from > $total) {
+                $from = $total + 1;
+            }
+
+            $to = min($offset + $limit, $total);
+
+            if ($from > $to) {
+                $from = $to + 1;
+
+                if ($from > $total + 1) {
+                    $from = $total + 1;
+                }
+            }
+        }
+
         return (object) [
             "total" => $this->total(),
             "perPage" => $this->count(),
@@ -310,8 +369,8 @@ class Paginate implements PaginatorInterface
             "nextPageUrl" => $this->nextPageUrl(),
             "prevPageUrl" => $this->prevPageUrl(),
             "path" => $this->pageUrl,
-            "from" => $this->offset() + 1,
-            "to" => $this->offset() + $this->limit(),
+            "from" => $from,
+            "to" => $to,
             "data" => $this->items(),
         ];
     }

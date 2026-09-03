@@ -52,18 +52,43 @@ class PdoDriver implements DriverInterface
             return $this->getPdoByDsn($config);
         }
 
+        if (!is_array($config)) {
+            throw new InvalidArgumentException("Invalid configuration.");
+        }
+
         $type = isset($config["type"])
             ? strtolower($config["type"])
             : strtolower(DbConstant::DEFAULT_TYPE);
+
+        if ($type === "sqlite") {
+            $dbname = $config["name"] ?? $config["database"] ?? null;
+
+            if (!is_string($dbname) || $dbname === "") {
+                throw new InvalidArgumentException("Missing sqlite database name.");
+            }
+
+            return $this->getPdoByDsn("sqlite:" . $dbname, $type);
+        }
+
+        foreach (["host", "name", "user", "pass"] as $key) {
+            if (!array_key_exists($key, $config)) {
+                throw new InvalidArgumentException("Missing config key: " . $key . ".");
+            }
+        }
+
+        $defaultPorts = array_change_key_case(DbConstant::DEFAULT_PORT, CASE_LOWER);
+        $port = $config["port"] ?? $defaultPorts[$type] ?? $defaultPorts[strtolower(DbConstant::DEFAULT_TYPE)];
+        $host = $config["host"];
+        $dbname = $config["name"];
         $user = $config["user"];
         $pass = $config["pass"];
-        $host = $config["host"];
-        $port =
-            $config["port"] ??
-            DbConstant::DEFAULT_PORT[DbConstant::DEFAULT_TYPE];
-        $dbname = $config["name"];
 
-        $dsn = $type . ":host=$host;port=$port;dbname=$dbname";
+        if ($type === "pgsql") {
+            $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+        } else {
+            $type = "mysql";
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
+        }
 
         return $this->getPdoByDsn($dsn, $type, $user, $pass);
     }
@@ -74,20 +99,19 @@ class PdoDriver implements DriverInterface
         $user = null,
         $pass = null,
     ): PDO {
-        $opt = [];
+        $opt = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ];
 
         if ($type === "mysql") {
-            $opt = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
-            ];
+            $opt[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES 'UTF8'";
         }
 
         if ($type !== null && $user !== null && $pass !== null) {
             return new PDO($dsn, $user, $pass, $opt);
         }
 
-        return new PDO($dsn);
+        return new PDO($dsn, null, null, $opt);
     }
 
     /**
@@ -95,6 +119,10 @@ class PdoDriver implements DriverInterface
      */
     public function disconnect(): bool
     {
+        if ($this->pdo === null) {
+            return false;
+        }
+
         $this->pdo = null;
 
         return true;
@@ -203,9 +231,10 @@ class PdoDriver implements DriverInterface
 
             if (str_starts_with(strtolower(trim($string)), "select")) {
                 $result["data"] = $qry->fetchAll();
+                $result["total"] = count($result["data"]);
+            } else {
+                $result["total"] = $qry->rowCount();
             }
-
-            $result["total"] = $qry->rowCount();
         } catch (PDOException $PDOException) {
             throw new Exception(
                 $PDOException->getMessage(),
@@ -418,7 +447,8 @@ class PdoDriver implements DriverInterface
     }
 
     /**
-     * Sanitize LIMIT clause. Allows "10" or "0, 10".
+     * Sanitize LIMIT clause. Allows "10", "10 OFFSET 5" (standard),
+     * and legacy MySQL "5, 10" (translated to standard form).
      *
      * @param mixed $limit
      * @return string
@@ -433,8 +463,20 @@ class PdoDriver implements DriverInterface
             return (string) $limit;
         }
 
-        if (is_string($limit) && preg_match("/^\d+(\s*,\s*\d+)?$/", trim($limit))) {
-            return preg_replace("/\s+/", " ", trim($limit));
+        if (is_string($limit)) {
+            $normalized = preg_replace("/\s+/", " ", trim($limit));
+
+            if (preg_match("/^\d+$/", $normalized)) {
+                return $normalized;
+            }
+
+            if (preg_match("/^(\d+)\s+OFFSET\s+(\d+)$/i", $normalized, $matches)) {
+                return $matches[1] . " OFFSET " . $matches[2];
+            }
+
+            if (preg_match("/^(\d+)\s*,\s*(\d+)$/", $normalized, $matches)) {
+                return $matches[2] . " OFFSET " . $matches[1];
+            }
         }
 
         throw new InvalidArgumentException("Invalid limit.");
@@ -483,7 +525,7 @@ class PdoDriver implements DriverInterface
             }
 
             $result["data"] = $qry->fetchAll();
-            $result["total"] = $qry->rowCount();
+            $result["total"] = count($result["data"]);
         } catch (PDOException $PDOException) {
             throw new Exception(
                 $PDOException->getMessage(),
@@ -503,13 +545,29 @@ class PdoDriver implements DriverInterface
      */
     protected function buildFieldSelectString($array): string
     {
-        if (!isset($array["field"]) || count($array["field"]) === 0) {
+        $field = $array["field"] ?? null;
+
+        if ($field === null) {
+            return "*";
+        }
+
+        if (is_string($field)) {
+            $field = trim($field);
+
+            if ($field === "" || $field === "*") {
+                return "*";
+            }
+
+            $field = array_map("trim", explode(",", $field));
+        }
+
+        if (!is_array($field) || count($field) === 0) {
             return "*";
         }
 
         $fields = [];
-        foreach ($array["field"] as $field) {
-            $fields[] = $this->quoteField($field);
+        foreach ($field as $item) {
+            $fields[] = $this->quoteField($item);
         }
 
         return implode(", ", $fields);
@@ -629,7 +687,7 @@ class PdoDriver implements DriverInterface
         $table,
         array $array = [],
         array $uniqueArray = [],
-        array $whereArray = [],
+        array|string $whereArray = [],
     ): bool {
         $result = false;
 
@@ -657,7 +715,7 @@ class PdoDriver implements DriverInterface
 
             $extendedCondition = [];
             $extIndex = 0;
-            foreach ($whereArray as $whereKey => $whereVal) {
+            foreach ((is_array($whereArray) ? $whereArray : []) as $whereKey => $whereVal) {
                 if (is_array($whereVal) || is_object($whereVal)) {
                     throw new InvalidArgumentException("Where value must be scalar or null.");
                 }
@@ -708,7 +766,7 @@ class PdoDriver implements DriverInterface
     public function update(
         string $table,
         array $array,
-        array $whereArray,
+        array|string $whereArray,
         array $uniqueArray = [],
     ) {
         $result = [
@@ -717,6 +775,10 @@ class PdoDriver implements DriverInterface
                 "isDuplicate" => false,
             ],
         ];
+
+        if (is_string($whereArray) && count($uniqueArray) > 0) {
+            throw new InvalidArgumentException("String where condition is not supported with unique check.");
+        }
 
         $fields = [];
         $executeArray = [];
@@ -894,7 +956,7 @@ class PdoDriver implements DriverInterface
                 $string .= " OFFSET $offset";
             }
 
-            $resultArray["limit"] = "$offset, $limit";
+            $resultArray["limit"] = $offset > 0 ? "$limit OFFSET $offset" : (string) $limit;
         }
 
         $resultArray["string"] = $string;

@@ -3,6 +3,7 @@ namespace Roolith\Store;
 
 use Closure;
 use Roolith\Store\Drivers\PdoDriver;
+use Roolith\Store\Exceptions\Exception;
 use Roolith\Store\Interfaces\DatabaseInterface;
 use Roolith\Store\Interfaces\DriverInterface;
 use Roolith\Store\Interfaces\PaginatorInterface;
@@ -60,8 +61,49 @@ class Database implements DatabaseInterface
     {
         $this->result = null;
         $this->total = 0;
+        $this->whereCondition = "";
+        $this->queryFn = null;
+        $this->tableName = "";
+
+        if ($this->driver) {
+            $this->driver->resetConditionalQueryString();
+        }
 
         return $this;
+    }
+
+    protected function resetResult(): void
+    {
+        $this->result = null;
+        $this->total = 0;
+    }
+
+    protected function requireDriver(): DriverInterface
+    {
+        if (!$this->driver) {
+            throw new Exception("Not connected. Call connect() first.");
+        }
+
+        return $this->driver;
+    }
+
+    protected function requireTable(): string
+    {
+        if ($this->tableName === "") {
+            throw new Exception("No table selected. Call table() first.");
+        }
+
+        return $this->tableName;
+    }
+
+    protected function clearQueryState(): void
+    {
+        $this->queryFn = null;
+        $this->whereCondition = "";
+
+        if ($this->driver) {
+            $this->driver->resetConditionalQueryString();
+        }
     }
 
     /**
@@ -69,6 +111,8 @@ class Database implements DatabaseInterface
      */
     public function get(): array
     {
+        $this->requireDriver();
+
         try {
             if (is_callable($this->queryFn)) {
                 call_user_func($this->queryFn, $this->whereCondition);
@@ -78,9 +122,7 @@ class Database implements DatabaseInterface
 
             return $this->result ?? [];
         } finally {
-            $this->queryFn = null;
-            $this->whereCondition = "";
-            $this->driver->resetConditionalQueryString();
+            $this->clearQueryState();
         }
     }
 
@@ -116,7 +158,7 @@ class Database implements DatabaseInterface
         $value,
         string $expression = "=",
     ): DatabaseInterface {
-        $this->whereCondition = $this->driver->buildConditionQueryString([
+        $this->whereCondition = $this->requireDriver()->buildConditionQueryString([
             "name" => $name,
             "value" => $value,
             "operator" => "AND",
@@ -134,7 +176,7 @@ class Database implements DatabaseInterface
         $value,
         string $expression = "=",
     ): DatabaseInterface {
-        $this->whereCondition = $this->driver->buildConditionQueryString([
+        $this->whereCondition = $this->requireDriver()->buildConditionQueryString([
             "name" => $name,
             "value" => $value,
             "operator" => "OR",
@@ -149,16 +191,20 @@ class Database implements DatabaseInterface
      */
     public function find($id): object|bool
     {
-        $this->driver->resetConditionalQueryString();
-        $conditionQueryString = $this->driver->buildConditionQueryString([
+        $driver = $this->requireDriver();
+        $this->requireTable();
+
+        $driver->resetConditionalQueryString();
+        $conditionQueryString = $driver->buildConditionQueryString([
             "name" => "id",
             "value" => $id,
         ]);
-        $bindings = $this->driver->getWhereBindings();
-        $this->driver->resetConditionalQueryString();
+        $bindings = $driver->getWhereBindings();
+        $driver->resetConditionalQueryString();
+        $this->whereCondition = "";
 
         return $this->select([
-            "condition" => $this->driver->getQuerySuffix(
+            "condition" => $driver->getQuerySuffix(
                 "",
                 $conditionQueryString,
             )["string"],
@@ -185,29 +231,30 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function paginate($array): PaginatorInterface
+    public function paginate(array $array): PaginatorInterface
     {
+        $this->requireDriver();
+
         $paginate = new Paginate($array);
 
         try {
-            if (is_callable($this->queryFn)) {
-                call_user_func(
-                    $this->queryFn,
-                    $this->whereCondition,
-                    $paginate->limit(),
-                    $paginate->offset(),
-                );
-            } else {
-                $this->select([])->get();
+            if (!is_callable($this->queryFn)) {
+                $this->requireTable();
+                $this->select([]);
             }
+
+            call_user_func(
+                $this->queryFn,
+                $this->whereCondition,
+                $paginate->limit(),
+                $paginate->offset(),
+            );
 
             $paginate->setItems($this->result ?? []);
 
             return $paginate;
         } finally {
-            $this->queryFn = null;
-            $this->whereCondition = "";
-            $this->driver->resetConditionalQueryString();
+            $this->clearQueryState();
         }
     }
 
@@ -226,7 +273,7 @@ class Database implements DatabaseInterface
      */
     public function query($string, $method = null, $bindings = []): DatabaseInterface
     {
-        $this->reset();
+        $this->resetResult();
 
         $this->queryFn = function (
             $whereCondition = "",
@@ -264,7 +311,7 @@ class Database implements DatabaseInterface
      */
     public function execute(string $query, array $bindings = []): mixed
     {
-        return $this->driver->execute($query, $bindings);
+        return $this->requireDriver()->execute($query, $bindings);
     }
 
     /**
@@ -272,7 +319,7 @@ class Database implements DatabaseInterface
      */
     public function select($array, $bindings = []): DatabaseInterface
     {
-        $this->reset();
+        $this->resetResult();
 
         $this->queryFn = function (
             $whereCondition = "",
@@ -291,10 +338,14 @@ class Database implements DatabaseInterface
             }
 
             if (strlen($whereCondition) > 0) {
-                $array["condition"] = $this->driver->getQuerySuffix(
+                $whereString = $this->driver->getQuerySuffix(
                     "",
                     $whereCondition,
                 )["string"];
+                $array["condition"] = $this->mergeConditions(
+                    $array["condition"] ?? "",
+                    $whereString,
+                );
             }
 
             $array["bindings"] = array_merge(
@@ -311,15 +362,43 @@ class Database implements DatabaseInterface
         return $this;
     }
 
+    protected function mergeConditions(string $caller, string $whereString): string
+    {
+        $strip = static function (string $value): string {
+            $value = trim($value);
+
+            if (str_starts_with(strtolower($value), "where ")) {
+                $value = trim(substr($value, 5));
+            }
+
+            return $value;
+        };
+
+        $caller = $strip($caller);
+        $where = $strip($whereString);
+
+        if ($caller === "") {
+            return $where === "" ? "" : "WHERE " . $where;
+        }
+
+        if ($where === "") {
+            return "WHERE " . $caller;
+        }
+
+        return "WHERE (" . $caller . ") AND (" . $where . ")";
+    }
+
     /**
      * @inheritDoc
      */
     public function insert($array, array $uniqueArray = []): InsertResponse
     {
-        $this->reset();
+        $this->resetResult();
+        $this->requireDriver();
+        $table = $this->requireTable();
 
         $resultArray = $this->driver->insert(
-            $this->tableName,
+            $table,
             $array,
             $uniqueArray,
         );
@@ -335,10 +414,12 @@ class Database implements DatabaseInterface
         $whereArray,
         array $uniqueArray = [],
     ): UpdateResponse {
-        $this->reset();
+        $this->resetResult();
+        $this->requireDriver();
+        $table = $this->requireTable();
 
         $resultArray = $this->driver->update(
-            $this->tableName,
+            $table,
             $array,
             $whereArray,
             $uniqueArray,
@@ -352,9 +433,11 @@ class Database implements DatabaseInterface
      */
     public function delete($whereArray): DeleteResponse
     {
-        $this->reset();
+        $this->resetResult();
+        $this->requireDriver();
+        $table = $this->requireTable();
 
-        $resultArray = $this->driver->delete($this->tableName, $whereArray);
+        $resultArray = $this->driver->delete($table, $whereArray);
 
         return new DeleteResponse($resultArray["data"]);
     }
@@ -362,7 +445,7 @@ class Database implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function debugMode($mode = true): DatabaseInterface
+    public function debugMode(bool $mode = true): DatabaseInterface
     {
         if ($this->driver) {
             $this->driver->setDebugMode($mode);

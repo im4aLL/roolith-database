@@ -9,16 +9,22 @@ use Roolith\Store\Interfaces\UpdateResponseInterface;
 class DatabaseTest extends TestCase
 {
     protected $db;
-    protected $config = [
-        'host' => 'localhost',
-        'name' => 'roolith_database',
-        'user' => 'root',
-        'pass' => '',
-    ];
+
+    protected function getConfig(): array
+    {
+        return [
+            'type' => 'sqlite',
+            'name' => ':memory:',
+        ];
+    }
 
     public function setUp(): void
     {
-        $this->db = new Database($this->config);
+        $this->db = new Database($this->getConfig());
+        $this->db->execute("CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT)");
+        $this->db->table('users')->insert(['name' => 'John Doe', 'email' => 'john@email.com']);
+        $this->db->table('users')->insert(['name' => 'Jane Doe', 'email' => 'jane@example.com']);
+        $this->db->table('users')->insert(['name' => 'Johnny Appleseed', 'email' => 'johnny@example.com']);
     }
 
     public function tearDown(): void
@@ -26,16 +32,12 @@ class DatabaseTest extends TestCase
         $this->db->disconnect();
     }
 
-    protected function connect()
-    {
-        $this->db = new Database($this->config);
-    }
-
     public function testShouldConstructWithConfig()
     {
-        $this->db = new Database($this->config);
+        $db = new Database($this->getConfig());
 
-        $this->assertInstanceOf(Database::class, $this->db);
+        $this->assertInstanceOf(Database::class, $db);
+        $db->disconnect();
     }
 
     public function testShouldConstructWithoutConfig()
@@ -47,24 +49,35 @@ class DatabaseTest extends TestCase
 
     public function testShouldConnect()
     {
-        $this->db = new Database();
+        $db = new Database();
 
-        $result = $this->db->connect($this->config);
+        $result = $db->connect($this->getConfig());
         $this->assertTrue($result);
+        $db->disconnect();
+    }
 
-        $config = $this->config;
-        $config['pass'] = 'something_else';
-        $result = $this->db->connect($config);
-        $this->assertFalse($result);
+    public function testShouldThrowOnInvalidConfig()
+    {
+        $db = new Database();
+
+        $this->expectException(\Roolith\Store\Exceptions\InvalidArgumentException::class);
+        $db->connect(['type' => 'mysql', 'host' => 'localhost']);
     }
 
     public function testShouldDisconnect()
     {
-        $this->db = new Database($this->config);
+        $db = new Database($this->getConfig());
 
-        $result = $this->db->disconnect();
+        $this->assertTrue($db->disconnect());
+        $this->assertFalse($db->disconnect());
+    }
 
-        $this->assertTrue($result);
+    public function testShouldRequireConnection()
+    {
+        $db = new Database();
+
+        $this->expectException(Exception::class);
+        $db->table('users')->where('id', 1)->get();
     }
 
     public function testShouldAllowRawQuery()
@@ -72,6 +85,7 @@ class DatabaseTest extends TestCase
         $result = $this->db->query("SELECT * FROM users")->get();
 
         $this->assertIsArray($result);
+        $this->assertCount(3, $result);
     }
 
     public function testShouldReturnFirstResult()
@@ -94,6 +108,27 @@ class DatabaseTest extends TestCase
         $this->assertIsArray($result);
     }
 
+    public function testShouldSelectWithStringField()
+    {
+        $result = $this->db->table('users')->select([
+            'field' => 'name',
+        ])->get();
+
+        $this->assertIsArray($result);
+        $this->assertIsString($result[0]->name);
+    }
+
+    public function testShouldNotOverwriteCallerCondition()
+    {
+        $result = $this->db->table('users')->select([
+            'condition' => 'WHERE id > 0',
+        ])->where('name', 'John Doe')->get();
+
+        $this->assertIsArray($result);
+        $this->assertCount(1, $result);
+        $this->assertEquals('John Doe', $result[0]->name);
+    }
+
     public function testShouldInsert()
     {
         $result = $this->db->table('users')->insert(
@@ -101,24 +136,24 @@ class DatabaseTest extends TestCase
         );
 
         $this->assertInstanceOf(InsertResponseInterface::class, $result);
-        $this->db->delete(['id' => $result->insertedId()]);
+        $this->assertTrue($result->success());
     }
 
     public function testShouldInsertIfRecordNotExists()
     {
         $result = $this->db->table('users')->insert(
-            ['name' => 'Habib Hadi', 'email' => 'me@habibhadi.com']
+            ['name' => 'Unique Person', 'email' => 'unique@email.com']
         );
 
         $previousInsertId = $result->insertedId();
 
         $result = $this->db->table('users')->insert(
-            ['name' => 'Habib Hadi', 'email' => 'me@habibhadi.com'],
+            ['name' => 'Unique Person', 'email' => 'unique@email.com'],
             ['email']
         );
 
         $this->assertFalse($result->success());
-        $this->db->delete(['id' => $previousInsertId]);
+        $this->db->table('users')->delete(['id' => $previousInsertId]);
     }
 
     public function testShouldUpdate()
@@ -133,14 +168,6 @@ class DatabaseTest extends TestCase
 
     public function testShouldUpdateIfRecordNotExists()
     {
-//        $result = $this->db->table('users')->update(
-//            ['name' => 'John', 'email' => 'john@email.com'],
-//            ['id' => 3],
-//            ['name']
-//        );
-//
-//        $this->assertFalse($result->success());
-
         $result = $this->db->table('users')->update(
             ['name' => 'Hadi'],
             ['id' => 1],
@@ -152,21 +179,36 @@ class DatabaseTest extends TestCase
 
     public function testShouldDelete()
     {
-        $result = $this->db->table('users')->delete(['id' => 102]);
+        $inserted = $this->db->table('users')->insert(
+            ['name' => 'To Delete', 'email' => 'delete@me.com']
+        );
+
+        $result = $this->db->table('users')->delete(['id' => $inserted->insertedId()]);
 
         $this->assertInstanceOf(DeleteResponseInterface::class, $result);
+        $this->assertTrue($result->success());
     }
 
     public function testShouldGetResultBasedOnWhere()
     {
         $result = $this->db->table('users')->where('name', '%john%', 'LIKE')->get();
         $this->assertIsArray($result);
+        $this->assertGreaterThanOrEqual(2, count($result));
 
         $result = $this->db->table('users')->where('id', 1)->count();
         $this->assertEquals(1, $result);
 
-        $result = $this->db->table('users')->where('id', 2)->orWhere('email', 'hailie41@yahoo.com')->count();
+        $result = $this->db->table('users')->where('id', 2)->orWhere('email', 'johnny@example.com')->count();
         $this->assertEquals(2, $result);
+    }
+
+    public function testShouldNotLeakWhereState()
+    {
+        $this->db->table('users')->where('id', 1)->get();
+
+        $result = $this->db->table('users')->query("SELECT * FROM users")->get();
+
+        $this->assertCount(3, $result);
     }
 
     public function testShouldGetResultByFind()
@@ -192,9 +234,24 @@ class DatabaseTest extends TestCase
     {
         $result = $this->db->table('users')->paginate([
             'perPage' => 1,
-            'total' => 100,
-            'pageUrl' => 'http://localhost/roolith-database/demo'
+            'total' => 3,
+            'pageUrl' => 'http://localhost/roolith-database/demo',
+            'currentPage' => 1,
         ]);
         $this->assertInstanceOf(PaginatorInterface::class, $result);
+        $this->assertCount(1, $result->items());
+    }
+
+    public function testShouldPaginateWithSelectAndLimit()
+    {
+        $result = $this->db->table('users')->select(['field' => ['name']])->paginate([
+            'perPage' => 2,
+            'total' => 3,
+            'pageUrl' => 'http://localhost/roolith-database/demo',
+            'currentPage' => 1,
+        ]);
+
+        $this->assertInstanceOf(PaginatorInterface::class, $result);
+        $this->assertCount(2, $result->items());
     }
 }

@@ -81,14 +81,14 @@ class PaginateTest extends TestCase
 
     public function testShouldGetPrevPageUrl()
     {
-        $paginate = $this->getMockBuilder(Paginate::class)->setConstructorArgs([
+        $paginate = $this->getMockBuilder(Paginate::class)->setConstructorArgs([[
             'perPage' => 5,
             'pageUrl' => 'http://example.com',
             'total' => 100,
-        ])->onlyMethods(['currentPage', 'getCurrentPageUrl'])->getMock();
+        ]])->onlyMethods(['currentPage'])->getMock();
         $paginate->method('currentPage')->willReturn(5);
 
-        $this->assertEquals('?page=4', $paginate->prevPageUrl());
+        $this->assertEquals('http://example.com?page=4', $paginate->prevPageUrl());
     }
 
     public function testShouldGetPageNumbers()
@@ -105,14 +105,14 @@ class PaginateTest extends TestCase
     {
         $this->assertEquals(0, $this->paginate->offset());
 
-        $paginate = $this->getMockBuilder(Paginate::class)->setConstructorArgs([
+        $paginate = $this->getMockBuilder(Paginate::class)->setConstructorArgs([[
             'perPage' => 5,
             'pageUrl' => 'http://example.com',
             'total' => 100,
-        ])->onlyMethods(['currentPage', 'getCurrentPageUrl'])->getMock();
+        ]])->onlyMethods(['currentPage'])->getMock();
         $paginate->method('currentPage')->willReturn(2);
 
-        $this->assertEquals(20, $paginate->offset());
+        $this->assertEquals(5, $paginate->offset());
     }
 
     public function testShouldGetDetails()

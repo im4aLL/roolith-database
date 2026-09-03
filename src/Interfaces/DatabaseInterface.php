@@ -207,7 +207,8 @@ interface DatabaseInterface
     /**
      * Turn on debug mode
      *
+     * @param bool $mode
      * @return $this
      */
-    public function debugMode(): DatabaseInterface;
+    public function debugMode(bool $mode = true): DatabaseInterface;
 }
