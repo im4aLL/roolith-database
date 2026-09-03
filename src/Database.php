@@ -3,7 +3,6 @@ namespace Roolith\Store;
 
 use Closure;
 use Roolith\Store\Drivers\PdoDriver;
-use Roolith\Store\Exceptions\Exception;
 use Roolith\Store\Interfaces\DatabaseInterface;
 use Roolith\Store\Interfaces\DriverInterface;
 use Roolith\Store\Interfaces\PaginatorInterface;
@@ -39,11 +38,7 @@ class Database implements DatabaseInterface
             $this->driver = new PdoDriver();
         }
 
-        try {
-            return $this->driver->connect($config);
-        } catch (Exception $e) {
-            return false;
-        }
+        return $this->driver->connect($config);
     }
 
     /**
@@ -74,17 +69,19 @@ class Database implements DatabaseInterface
      */
     public function get(): array
     {
-        if (is_callable($this->queryFn)) {
-            call_user_func($this->queryFn, $this->whereCondition);
+        try {
+            if (is_callable($this->queryFn)) {
+                call_user_func($this->queryFn, $this->whereCondition);
+            } else {
+                $this->select([])->get();
+            }
+
+            return $this->result;
+        } finally {
             $this->queryFn = null;
-        } else {
-            $this->select([])->get();
+            $this->whereCondition = "";
+            $this->driver->resetConditionalQueryString();
         }
-
-        $this->whereCondition = "";
-        $this->driver->resetConditionalQueryString();
-
-        return $this->result;
     }
 
     /**
@@ -192,24 +189,26 @@ class Database implements DatabaseInterface
     {
         $paginate = new Paginate($array);
 
-        if (is_callable($this->queryFn)) {
-            call_user_func(
-                $this->queryFn,
-                $this->whereCondition,
-                $paginate->limit(),
-                $paginate->offset(),
-            );
+        try {
+            if (is_callable($this->queryFn)) {
+                call_user_func(
+                    $this->queryFn,
+                    $this->whereCondition,
+                    $paginate->limit(),
+                    $paginate->offset(),
+                );
+            } else {
+                $this->select([])->get();
+            }
+
+            $paginate->setItems($this->result);
+
+            return $paginate;
+        } finally {
             $this->queryFn = null;
-        } else {
-            $this->select([])->get();
+            $this->whereCondition = "";
+            $this->driver->resetConditionalQueryString();
         }
-
-        $this->whereCondition = "";
-        $this->driver->resetConditionalQueryString();
-
-        $paginate->setItems($this->result);
-
-        return $paginate;
     }
 
     /**
@@ -234,27 +233,23 @@ class Database implements DatabaseInterface
             $limit = 0,
             $offset = 0,
         ) use ($string, $method, $bindings) {
-            try {
-                $string = $this->driver->getQuerySuffix(
-                    $string,
-                    $whereCondition,
-                    $limit,
-                    $offset,
-                )["string"];
+            $string = $this->driver->getQuerySuffix(
+                $string,
+                $whereCondition,
+                $limit,
+                $offset,
+            )["string"];
 
-                $allBindings = array_merge(
-                    $bindings,
-                    $this->driver->getWhereBindings(),
-                );
+            $allBindings = array_merge(
+                $bindings,
+                $this->driver->getWhereBindings(),
+            );
 
-                $resultArray = $method
-                    ? $this->driver->query($string, $method, $allBindings)
-                    : $this->driver->query($string, null, $allBindings);
-                $this->result = $resultArray["data"];
-                $this->total = $resultArray["total"];
-            } catch (Exceptions\Exception $e) {
-                echo $e->getMessage();
-            }
+            $resultArray = $method
+                ? $this->driver->query($string, $method, $allBindings)
+                : $this->driver->query($string, null, $allBindings);
+            $this->result = $resultArray["data"];
+            $this->total = $resultArray["total"];
         };
 
         return $this;
@@ -269,13 +264,7 @@ class Database implements DatabaseInterface
      */
     public function execute(string $query, array $bindings = []): mixed
     {
-        try {
-            return $this->driver->execute($query, $bindings);
-        } catch (Exceptions\Exception $e) {
-            echo $e->getMessage();
-        }
-
-        return false;
+        return $this->driver->execute($query, $bindings);
     }
 
     /**
@@ -290,37 +279,33 @@ class Database implements DatabaseInterface
             $limit = 0,
             $offset = 0,
         ) use ($array, $bindings) {
-            try {
-                $querySuffix = $this->driver->getQuerySuffix(
+            $querySuffix = $this->driver->getQuerySuffix(
+                "",
+                $whereCondition,
+                $limit,
+                $offset,
+            );
+
+            if (strlen($querySuffix["limit"]) > 0) {
+                $array["limit"] = $querySuffix["limit"];
+            }
+
+            if (strlen($whereCondition) > 0) {
+                $array["condition"] = $this->driver->getQuerySuffix(
                     "",
                     $whereCondition,
-                    $limit,
-                    $offset,
-                );
-
-                if (strlen($querySuffix["limit"]) > 0) {
-                    $array["limit"] = $querySuffix["limit"];
-                }
-
-                if (strlen($whereCondition) > 0) {
-                    $array["condition"] = $this->driver->getQuerySuffix(
-                        "",
-                        $whereCondition,
-                    )["string"];
-                }
-
-                $array["bindings"] = array_merge(
-                    $array["bindings"] ?? [],
-                    $bindings,
-                    $this->driver->getWhereBindings(),
-                );
-
-                $resultArray = $this->driver->select($this->tableName, $array);
-                $this->result = $resultArray["data"];
-                $this->total = $resultArray["total"];
-            } catch (Exceptions\Exception $e) {
-                echo $e->getMessage();
+                )["string"];
             }
+
+            $array["bindings"] = array_merge(
+                $array["bindings"] ?? [],
+                $bindings,
+                $this->driver->getWhereBindings(),
+            );
+
+            $resultArray = $this->driver->select($this->tableName, $array);
+            $this->result = $resultArray["data"];
+            $this->total = $resultArray["total"];
         };
 
         return $this;
@@ -333,19 +318,13 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        try {
-            $resultArray = $this->driver->insert(
-                $this->tableName,
-                $array,
-                $uniqueArray,
-            );
+        $resultArray = $this->driver->insert(
+            $this->tableName,
+            $array,
+            $uniqueArray,
+        );
 
-            return new InsertResponse($resultArray["data"]);
-        } catch (Exceptions\Exception $e) {
-            echo $e->getMessage();
-        }
-
-        return new InsertResponse();
+        return new InsertResponse($resultArray["data"]);
     }
 
     /**
@@ -358,20 +337,14 @@ class Database implements DatabaseInterface
     ): UpdateResponse {
         $this->reset();
 
-        try {
-            $resultArray = $this->driver->update(
-                $this->tableName,
-                $array,
-                $whereArray,
-                $uniqueArray,
-            );
+        $resultArray = $this->driver->update(
+            $this->tableName,
+            $array,
+            $whereArray,
+            $uniqueArray,
+        );
 
-            return new UpdateResponse($resultArray["data"]);
-        } catch (Exceptions\Exception $e) {
-            echo $e->getMessage();
-        }
-
-        return new UpdateResponse();
+        return new UpdateResponse($resultArray["data"]);
     }
 
     /**
@@ -381,15 +354,9 @@ class Database implements DatabaseInterface
     {
         $this->reset();
 
-        try {
-            $resultArray = $this->driver->delete($this->tableName, $whereArray);
+        $resultArray = $this->driver->delete($this->tableName, $whereArray);
 
-            return new DeleteResponse($resultArray["data"]);
-        } catch (Exceptions\Exception $e) {
-            echo $e->getMessage();
-        }
-
-        return new DeleteResponse();
+        return new DeleteResponse($resultArray["data"]);
     }
 
     /**

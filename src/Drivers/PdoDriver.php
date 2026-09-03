@@ -37,9 +37,9 @@ class PdoDriver implements DriverInterface
             $this->pdo = $this->getPdo($config);
         } catch (PDOException $PDOException) {
             throw new Exception(
-                $PDOException->getMessage() .
-                    " " .
-                    $PDOException->getTraceAsString(),
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
             );
         }
 
@@ -208,9 +208,9 @@ class PdoDriver implements DriverInterface
             $result["total"] = $qry->rowCount();
         } catch (PDOException $PDOException) {
             throw new Exception(
-                $PDOException->getMessage() .
-                    " " .
-                    $PDOException->getTraceAsString(),
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
             );
         }
 
@@ -232,9 +232,9 @@ class PdoDriver implements DriverInterface
             return $qry->execute($bindings ?: null);
         } catch (PDOException $PDOException) {
             throw new Exception(
-                $PDOException->getMessage() .
-                    " " .
-                    $PDOException->getTraceAsString(),
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
             );
         }
     }
@@ -486,11 +486,9 @@ class PdoDriver implements DriverInterface
             $result["total"] = $qry->rowCount();
         } catch (PDOException $PDOException) {
             throw new Exception(
-                $PDOException->getMessage() .
-                    " Query: " .
-                    $qryStr .
-                    " " .
-                    $PDOException->getTraceAsString(),
+                $PDOException->getMessage(),
+                (int) $PDOException->getCode(),
+                $PDOException,
             );
         }
 
@@ -608,11 +606,9 @@ class PdoDriver implements DriverInterface
                 $result["data"]["insertedId"] = $this->pdo->lastInsertId();
             } catch (PDOException $PDOException) {
                 throw new Exception(
-                    $PDOException->getMessage() .
-                        " Query: " .
-                        $qryStr .
-                        " " .
-                        $PDOException->getTraceAsString(),
+                    $PDOException->getMessage(),
+                    (int) $PDOException->getCode(),
+                    $PDOException,
                 );
             }
         }
@@ -696,11 +692,9 @@ class PdoDriver implements DriverInterface
                 }
             } catch (PDOException $PDOException) {
                 throw new Exception(
-                    $PDOException->getMessage() .
-                        " Query: " .
-                        $cQryStr .
-                        " " .
-                        $PDOException->getTraceAsString(),
+                    $PDOException->getMessage(),
+                    (int) $PDOException->getCode(),
+                    $PDOException,
                 );
             }
         }
@@ -762,11 +756,9 @@ class PdoDriver implements DriverInterface
                 $result["data"]["affectedRow"] = $qry->rowCount();
             } catch (PDOException $PDOException) {
                 throw new Exception(
-                    $PDOException->getMessage() .
-                        " Query: " .
-                        $qryStr .
-                        " " .
-                        $PDOException->getTraceAsString(),
+                    $PDOException->getMessage(),
+                    (int) $PDOException->getCode(),
+                    $PDOException,
                 );
             }
         }
@@ -853,11 +845,9 @@ class PdoDriver implements DriverInterface
                 ];
             } catch (PDOException $PDOException) {
                 throw new Exception(
-                    $PDOException->getMessage() .
-                        " Query: " .
-                        $qryStr .
-                        " " .
-                        $PDOException->getTraceAsString(),
+                    $PDOException->getMessage(),
+                    (int) $PDOException->getCode(),
+                    $PDOException,
                 );
             }
         }
