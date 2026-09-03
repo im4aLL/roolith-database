@@ -239,8 +239,21 @@ print_r($db->getDebugLog());
 Note: Once debug-mode is active queries are collected via `getDebugLog()` with no echo output!
 
 #### Upgrade to 2.0
-Breaking: `update()` requires array `where` (string where removed), `delete()` return shape drops `debug` key, `pageNumbers()` ellipsis is `'...'` (was `'.'`), `new Paginate` no longer reads `$_GET`/`$_SERVER` (use `Paginate::fromGlobals()` for legacy web or `Paginate::fromRequest()`), new required interface methods (`buildConditionFragment`, transactions, debug log, `orderBy`/`limit`/`offset`), requires `php >= 8.0`.
-Notes: `getDetails()` returns `from=0,to=0` past the last page, `fromRequest()` preserves query params minus `pageParam`, transactions reject nesting and stray `commit`/`rollBack` (check `inTransaction()`).
+
+Breaking:
+
+1. `update()` requires array `where` (string where removed).
+2. `delete()` return shape drops `debug` key.
+3. `pageNumbers()` ellipsis is `'...'` (was `'.'`).
+4. `new Paginate` no longer reads `$_GET`/`$_SERVER` (use `Paginate::fromGlobals()` for legacy web or `Paginate::fromRequest()`).
+5. New required interface methods (`buildConditionFragment`, transactions, debug log, `orderBy`/`limit`/`offset`).
+6. Requires `php >= 8.0`.
+
+Notes:
+
+1. `getDetails()` returns `from=0,to=0` past the last page.
+2. `fromRequest()` preserves query params minus `pageParam`.
+3. Transactions reject nesting and stray `commit`/`rollBack` (check `inTransaction()`).
 
 #### Development
 
