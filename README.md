@@ -1,6 +1,19 @@
 # roolith-database
 PHP database driver
 
+Supports MySQL, PostgreSQL (`pgsql`), and SQLite via PDO.
+Any other PDO driver only works when you pass a raw DSN string directly.
+
+#### Supported databases
+
+| Driver | `type` value | Connect example |
+| --- | --- | --- |
+| MySQL | `mysql` (default) | `['type' => 'mysql', 'host' => 'localhost', 'port' => 3306, 'name' => 'dbname', 'user' => 'username', 'pass' => 'password']` |
+| PostgreSQL | `pgsql` | `['type' => 'pgsql', 'host' => 'localhost', 'port' => 5432, 'name' => 'dbname', 'user' => 'username', 'pass' => 'password']` |
+| SQLite | `sqlite` | `['type' => 'sqlite', 'name' => 'path/to/database.sqlite']` |
+
+Raw PDO DSN strings are also passed through, for example `$db->connect('sqlite::memory:');`.
+
 #### Install
 ```text
 composer require roolith/database
