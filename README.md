@@ -244,6 +244,19 @@ Notes: `getDetails()` returns `from=0,to=0` past the last page, `fromRequest()` 
 
 #### Development
 
+Run tests:
+
+```
+composer test
+```
+
+Run coverage (needs `phpdbg`, no PCOV/Xdebug required):
+
+```
+composer coverage
+open coverage-html/index.html
+```
+
 ```
 PHPUnit 9.6.36 by Sebastian Bergmann and contributors.
 

@@ -23,5 +23,10 @@
       "Roolith\\Store\\": "src/"
     }
   },
+  "scripts": {
+    "test": "vendor/bin/phpunit --testdox tests",
+    "coverage": "phpdbg -qrr vendor/bin/phpunit --coverage-html coverage-html --coverage-text tests",
+    "coverage:clover": "phpdbg -qrr vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text tests"
+  },
   "version": "2.0.0"
 }
